@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Shop;
+use App\Models\ShopSetting;
 use App\Models\Slider;
 use Illuminate\Http\JsonResponse;
 
@@ -184,6 +185,71 @@ class ProductsController extends Controller
         ]);
     }
 
+    public function getProductFilters()
+    {
+        // 1) Fetch brands: all published brands used in products
+        $brands = Brand::select('id', 'name')
+            ->whereHas('products') // if you only want brands with products
+            ->orderBy('name')
+            ->get();
 
+        // 2) Fetch categories recursively with children
+        $categories = Category::with(['childrenRecursive'])
+            ->where('parent_id', 0)
+            ->select('id', 'name', 'banner as image', 'parent_id')
+            ->get()
+            ->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'image' => url($category->image ?? '/assets/img/placeholder.jpg'),
+                    'parent_id' => $category->parent_id,
+                    'children' => $this->mapChildren($category->childrenRecursive),
+                ];
+            });
+
+        // 3) Fetch stores from shops
+        $stores = ShopSetting::select('id', 'user_id', 'name', 'logo')
+            ->limit(50) // optional limit
+            ->get()
+            ->map(function ($shop) {
+                return [
+                    'id' => $shop->id,
+                    'slug' => \Str::slug($shop->name) . '-' . $shop->id,
+                    'user_id' => $shop->user_id,
+                    'name' => $shop->name,
+                    'logo' => url($shop->logo),
+                    'cover' => url('/assets/img/placeholder.jpg'),
+                    'rating' => 0, // static or pull from review system
+                ];
+            });
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => '',
+            'data' => [
+                'brands' => $brands,
+                'categories' => $categories,
+                'stores' => $stores,
+            ],
+        ]);
+    }
+
+    /**
+     * Helper to map nested category children recursively
+     */
+    private function mapChildren($children)
+    {
+        return $children->map(function ($child) {
+            return [
+                'id' => $child->id,
+                'name' => $child->name,
+                'image' => url($child->image ?? '/assets/img/placeholder.jpg'),
+                'parent_id' => $child->parent_id,
+                'children' => $this->mapChildren($child->childrenRecursive),
+            ];
+        });
+    }
 
 }

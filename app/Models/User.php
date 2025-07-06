@@ -113,6 +113,11 @@ class User extends Authenticatable
         return $this->hasOne(Merchant::class, 'user_id', 'id');
     }
 
+    public function shop()
+    {
+        return $this->hasOne(ShopSetting::class, 'user_id', 'id');
+    }
+
     public function products()
     {
         return $this->hasMany(Product::class);

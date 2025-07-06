@@ -17,3 +17,4 @@ require __DIR__.'/api/brands.php';
 require __DIR__.'/api/orders.php';
 require __DIR__.'/api/cart.php';
 require __DIR__.'/api/home.php';
+require __DIR__.'/api/categories.php';
