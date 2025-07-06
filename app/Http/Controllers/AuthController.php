@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Auth;
 use Carbon\Carbon;
 use DB;
 use Hash;
@@ -11,6 +12,11 @@ use App\Models\User;
 
 class AuthController extends Controller
 {
+    const DUMMY_PHONE = '0551011969';
+    const DUMMY_CODE = '444444';
+    const MAX_ATTEMPTS = 5;
+    const MAX_SENDS = 3;
+    const COOLDOWN_SECONDS = 60;
     public function requestOtp(Request $request)
     {
         $request->validate(['phone' => 'required|string|regex:/^\d{9,15}$/']);
@@ -60,52 +66,32 @@ class AuthController extends Controller
             'otp'   => 'required|digits:6',
         ]);
 
-        $phone = $request->phone;
-        $otpInput = $request->otp;
+            // Dummy login shortcut for local/testing
+        if (env('APP_ENV') === 'local' 
+            && $request->phone === self::DUMMY_PHONE 
+            && $request->otp === self::DUMMY_CODE) {
 
-        // Look up active OTP
-        $otp = DB::table('otps')
-            ->where('phone', $phone)
-            ->where('code', $otpInput)
-            ->where('used', 0)
-            ->where('expires_at', '>', now())
-            ->first();
+            $user = User::whereEncrypted('phone_number', $request->phone)->first();
 
-        if (!$otp) {
-            // Increment attempts for last unexpired OTP if exists
-            DB::table('otps')
-                ->where('phone', $phone)
-                ->where('expires_at', '>', now())
-                ->where('used', 0)
-                ->increment('attempts');
+            if (! $user) {
+                return response()->json([
+                    'status' => false,
+                    'errNum' => 'E404',
+                    'msg' => 'Dummy user not found in database.',
+                ], 404);
+            }
 
-            return response()->json(['message' => __('api.otp_invalid')], 422);
+            Auth::login($user);
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'status' => true,
+                'errNum' => 'S200',
+                'msg' => __('api.otp_verified'),
+                'token' => $token,
+                'user' => $user,
+            ]);
         }
-
-        // Mark OTP as used
-        DB::table('otps')->where('id', $otp->id)->update([
-            'used' => 1,
-            'updated_at' => now(),
-        ]);
-
-        // Find or create user by phone
-        $user = User::firstOrCreate(
-            ['phone_number' => $phone],
-            [
-                'first_name' => 'User',
-                'last_name' => 'Name',
-                'email' => uniqid('user_')."@example.com",
-                'password' => Hash::make(str()->random(16)),
-            ]
-        );
-
-        // Issue Sanctum token
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'message' => __('api.otp_verified'),
-            'token' => $token,
-            'user' => $user,
-        ]);
     }
 }

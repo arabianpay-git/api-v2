@@ -2,4 +2,5 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
-Route::get('/home-page/all', [HomeController::class, 'index']);
+use App\Http\Controllers\OrdersController;
+Route::middleware('auth:sanctum')->post('/orders/store', [OrdersController::class, 'sendOrder']);
