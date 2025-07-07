@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\PaymentsController;
-Route::middleware('auth:sanctum')->post('/payments/pay', [PaymentsController::class, 'createPayment']);
-Route::get('/payment/clickpay/callback', [PaymentsController::class, 'handleClickPayCallback'])
-    ->name('clickpay.callback');
+Route::prefix('v2')->middleware('auth:sanctum')->group(function () {
+    Route::post('/payments/pay', [PaymentsController::class, 'createPayment']);
+    Route::get('/payment/clickpay/callback', [PaymentsController::class, 'handleClickPayCallback'])
+        ->name('clickpay.callback');
+});
