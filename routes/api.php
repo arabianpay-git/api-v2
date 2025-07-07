@@ -20,3 +20,4 @@ require __DIR__.'/api/home.php';
 require __DIR__.'/api/categories.php';
 require __DIR__.'/api/addresses.php';
 require __DIR__.'/api/payments.php';
+require __DIR__.'/api/common.php';
