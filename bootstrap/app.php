@@ -1,5 +1,6 @@
 <?php
-
+use App\Http\Middleware\EnsureSystemKeyAndLanguage;
+use App\Http\Middleware\EnsureSanctumAuthenticated;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,8 +13,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->append(\App\Http\Middleware\EnsureSystemKeyAndLanguage::class);
-        $middleware->append(\App\Http\Middleware\EnsureSanctumAuthenticated::class);
+        // Middleware عالمي مخصص للنظام واللغة (يبقى مفعلًا دائمًا)
+        $middleware->append(EnsureSystemKeyAndLanguage::class);
+
+        // Middleware المصادقة لا يُطبق إلا عندما يُطلب بـ auth:sanctum
+        $middleware->alias([
+            'auth:sanctum' => EnsureSanctumAuthenticated::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

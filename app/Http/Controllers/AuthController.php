@@ -9,6 +9,7 @@ use Hash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use App\Models\User;
+use Str;
 
 class AuthController extends Controller
 {
@@ -17,6 +18,9 @@ class AuthController extends Controller
     const MAX_ATTEMPTS = 5;
     const MAX_SENDS = 3;
     const COOLDOWN_SECONDS = 60;
+
+    const AUTHORIZE_ENDPOINT = '/nafath/api/v1/client/authorize/';
+    const STATUS_ENDPOINT = 'https://api.arabianpay.co/api/v1/check-nafath-status';
     public function requestOtp(Request $request)
     {
         $request->validate(['phone' => 'required|string|regex:/^\d{9,15}$/']);
@@ -94,4 +98,200 @@ class AuthController extends Controller
             ]);
         }
     }
+
+    public function requestOtpRegister(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|string|regex:/^\d{9,15}$/',
+            'id_number' => 'required|string|min:10|max:15',
+        ]);
+
+        $code = rand(100000, 999999); 
+        $expiresAt = now()->addMinutes(5);
+
+        DB::table('otps')->updateOrInsert(
+            ['phone' => $request->phone],
+            [
+                'code' => $code,
+                'identity' => $request->id_number,
+                'used' => 0,
+                'attempts' => 0,
+                'sends' => DB::raw('sends + 1'),
+                'expires_at' => $expiresAt,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        // TODO: send SMS via your service
+
+        return response()->json([
+            'status' => true,
+            'msg' => 'تم إرسال رمز التحقق بنجاح.',
+        ]);
+    }
+
+    public function verifyRegistration(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|string|regex:/^\d{9,15}$/',
+            'otp' => 'required|digits:6',
+        ]);
+
+        $otp = DB::table('otps')
+            ->where('phone', $request->phone)
+            ->where('code', $request->otp)
+            ->where('used', 0)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (! $otp) {
+            DB::table('otps')
+                ->where('phone', $request->phone)
+                ->increment('attempts');
+
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E400',
+                'msg' => 'رمز التحقق غير صحيح أو منتهي.',
+            ], 422);
+        }
+
+        // تحقق من الهوية باستخدام بيانات otp->identity
+        $idNumber = $otp->identity;
+
+        // TODO: تحقق من الهوية عبر نفاذ أو أي نظام خارجي
+        // if (! Nafath::verify($idNumber)) { ... }
+
+
+        DB::table('otps')->where('id', $otp->id)->update(['used' => 1]);
+
+        $user = User::firstOrCreate(
+            ['phone_number' => $request->phone],
+            [
+                'first_name' => 'User',
+                'last_name' => 'Name',
+                'email' => uniqid('user_').'@example.com',
+                'password' => bcrypt(Str::random(16)),
+                'identity' => $idNumber,
+            ]
+        );
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => 'تم التحقق من المستخدم وتسجيله.',
+            'token' => $token,
+            'user' => $user,
+        ]);
+    }
+
+    public function simulateNafathResponse(Request $request)
+    {
+        $request->validate([
+            'response' => 'required|array',
+        ]);
+
+        $response = $request->response;
+
+        $identityNumber = $response['id'] ?? null;
+
+        if (!$identityNumber) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E422',
+                'msg' => 'Identity number missing from response.',
+            ], 422);
+        }
+
+        // التحقق أو إنشاء المستخدم
+        $user = User::firstOrCreate(
+            ['identity_number' => $identityNumber],
+            [
+                'first_name' => $response['first_name#ar'] ?? '',
+                'last_name' => $response['family_name#ar'] ?? '',
+                'email' => uniqid('nafath_') . '@example.com',
+                'password' => bcrypt(str()->random(16)),
+            ]
+        );
+
+        // إصدار التوكن
+        $token = $user->createToken('nafath_token')->plainTextToken;
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => 'User verified successfully via Nafath.',
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'identity_number' => $user->identity_number,
+            ],
+        ]);
+    }
+
+    public function processCallbackWithCurl(string $trans_id, string $nationalId, ?string $phone = null): ?array
+    {
+        $payload = json_encode([
+            'id_number' => $nationalId,
+            'phone'     => $phone,
+        ]);
+
+        $headers = [
+            'Authorization: apikey 62976ae5-35b3-4e73-8e3e-b0e40d2b2d29',
+            'Accept: application/json',
+            'Content-Type: application/json',
+            'Cache-Control: no-cache',
+        ];
+
+        $ch = curl_init();
+
+        curl_setopt_array($ch, [
+            CURLOPT_URL => self::STATUS_ENDPOINT,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => $headers,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if (curl_errno($ch)) {
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            \Log::error('Nafath CURL error: ' . $error);
+
+            return [
+                'success' => false,
+                'message' => 'CURL request failed',
+                'error' => $error,
+            ];
+        }
+
+        curl_close($ch);
+
+        $data = json_decode($response, true);
+
+        if ($httpCode === 200 && isset($data['message']) && $data['message'] === 'Validated') {
+            \App\Models\NafathVerification::where('trans_id', $trans_id)
+                ->update([
+                    'status' => 'approved',
+                    'nafath_response' => $data['data'] ?? $data,
+                ]);
+
+            $this->registerUser($data);
+        }
+
+        return $httpCode === 200
+            ? ['success' => true, 'data' => $data]
+            : ['success' => false, 'message' => 'Non-200 response from Nafath', 'data' => $data ?? []];
+    }
+
+
 }
