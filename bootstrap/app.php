@@ -1,9 +1,11 @@
 <?php
 use App\Http\Middleware\EnsureSystemKeyAndLanguage;
 use App\Http\Middleware\EnsureSanctumAuthenticated;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\JsonResponse;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,9 +20,22 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Middleware المصادقة لا يُطبق إلا عندما يُطلب بـ auth:sanctum
         $middleware->alias([
-            'auth:sanctum' => EnsureSanctumAuthenticated::class,
+            'sanctum.auth.json' => EnsureSanctumAuthenticated::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (AuthenticationException $e, $request): JsonResponse {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'status' => false,
+                    'errNum' => 'E401',
+                    'msg' => 'Unauthenticated: Invalid or missing token.',
+                ], 401);
+            }
+
+            // Fallback if it's a web request
+            return response()->json([
+                'message' => 'Unauthenticated.',
+            ], 401);
+        });
     })->create();

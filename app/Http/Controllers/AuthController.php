@@ -161,6 +161,7 @@ class AuthController extends Controller
         $idNumber = $otp->identity;
 
         // TODO: تحقق من الهوية عبر نفاذ أو أي نظام خارجي
+        return $this->callCheckStatusCurl($idNumber,$request->phone);
         // if (! Nafath::verify($idNumber)) { ... }
 
 
@@ -234,24 +235,23 @@ class AuthController extends Controller
         ]);
     }
 
-    public function processCallbackWithCurl(string $trans_id, string $nationalId, ?string $phone = null): ?array
+    public function callCheckStatusCurl(string $idNumber, string $phone): array
     {
         $payload = json_encode([
-            'id_number' => $nationalId,
-            'phone'     => $phone,
+            'id_number' => $idNumber,
+            'phone' => $phone,
         ]);
 
         $headers = [
             'Authorization: apikey 62976ae5-35b3-4e73-8e3e-b0e40d2b2d29',
             'Accept: application/json',
             'Content-Type: application/json',
-            'Cache-Control: no-cache',
         ];
 
         $ch = curl_init();
 
         curl_setopt_array($ch, [
-            CURLOPT_URL => self::STATUS_ENDPOINT,
+            CURLOPT_URL => 'https://api.arabianpay.co/api/v1/check-nafath-status', // Update to actual route
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $payload,
@@ -265,8 +265,6 @@ class AuthController extends Controller
             $error = curl_error($ch);
             curl_close($ch);
 
-            \Log::error('Nafath CURL error: ' . $error);
-
             return [
                 'success' => false,
                 'message' => 'CURL request failed',
@@ -275,22 +273,13 @@ class AuthController extends Controller
         }
 
         curl_close($ch);
-
         $data = json_decode($response, true);
 
-        if ($httpCode === 200 && isset($data['message']) && $data['message'] === 'Validated') {
-            \App\Models\NafathVerification::where('trans_id', $trans_id)
-                ->update([
-                    'status' => 'approved',
-                    'nafath_response' => $data['data'] ?? $data,
-                ]);
-
-            $this->registerUser($data);
-        }
-
-        return $httpCode === 200
-            ? ['success' => true, 'data' => $data]
-            : ['success' => false, 'message' => 'Non-200 response from Nafath', 'data' => $data ?? []];
+        return [
+            'success' => $httpCode === 200,
+            'status_code' => $httpCode,
+            'data' => $data,
+        ];
     }
 
 
