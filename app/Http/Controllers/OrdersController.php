@@ -143,14 +143,15 @@ class OrdersController extends Controller
             // Clear cart
             $cart->items()->delete();
             $cart->delete();
-
+            
+            DB::commit();
             return response()->json([
                 'status' => true,
                 'errNum' => 'S200',
                 'msg' => 'Orders placed successfully.',
                 'data' => $orders,
             ]);
-            DB::commit();
+           
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
