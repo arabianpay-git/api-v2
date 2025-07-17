@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\Product;
 
 use App\Models\SchedulePayment;
+use App\Traits\ApiResponseTrait;
 use Auth;
 use DB;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,7 @@ use Str;
 
 class OrdersController extends Controller
 {
+    use ApiResponseTrait;
     public function sendOrder(Request $request)
     {
         $request->validate([
@@ -145,12 +147,8 @@ class OrdersController extends Controller
             $cart->delete();
             
             DB::commit();
-            return response()->json([
-                'status' => true,
-                'errNum' => 'S200',
-                'msg' => 'Orders placed successfully.',
-                'data' => $orders,
-            ]);
+
+            return $this->returnData($orders, 'Orders placed successfully.');
            
         } catch (\Exception $e) {
             DB::rollBack();

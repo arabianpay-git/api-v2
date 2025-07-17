@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\EncryptionService;
+use App\Models\Otp;
 use Auth;
 use Carbon\Carbon;
 use DB;
@@ -10,9 +12,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use App\Models\User;
 use Str;
+use App\Traits\ApiResponseTrait;
+use Validator;
 
 class AuthController extends Controller
 {
+    use ApiResponseTrait;
     const DUMMY_PHONE = '0551011969';
     const DUMMY_CODE = '444444';
     const MAX_ATTEMPTS = 5;
@@ -63,20 +68,30 @@ class AuthController extends Controller
         return response()->json(['message' => __('api.otp_sent')]);
     }
 
+    
     public function verifyOtp(Request $request)
     {
-        $request->validate([
-            'phone' => 'required|string|regex:/^\d{9,15}$/',
-            'otp'   => 'required|digits:6',
-        ]);
+        $encryptionService = new EncryptionService();
 
-            // Dummy login shortcut for local/testing
-        if (env('APP_ENV') === 'local' 
-            && $request->phone === self::DUMMY_PHONE 
-            && $request->otp === self::DUMMY_CODE) {
+        // Decrypt values from the request
+        $phone = $encryptionService->decrypt($request->input('phone_number'));
+        $otp = $encryptionService->decrypt($request->input('otp'));
+        $notificationToken = $encryptionService->decrypt($request->input('notification_token'));
 
-            $user = User::whereEncrypted('phone_number', $request->phone)->first();
+        // Validate decrypted data
+        $validated = Validator::make([
+            'phone_number' => $phone,
+            'otp' => $otp,
+        ], [
+            'phone_number' => 'required|string|regex:/^\d{9,15}$/',
+            'otp' => 'required|digits:6',
+        ])->validate();
 
+        
+
+        // Dummy shortcut for development testing
+        if (env('APP_ENV') === 'local' && $phone === self::DUMMY_PHONE && $otp === self::DUMMY_CODE) {
+            $user = User::where('phone_number', $encryptionService->db_encrypt($phone))->first();
             if (! $user) {
                 return response()->json([
                     'status' => false,
@@ -86,18 +101,52 @@ class AuthController extends Controller
             }
 
             Auth::login($user);
-
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            return response()->json([
-                'status' => true,
-                'errNum' => 'S200',
-                'msg' => __('api.otp_verified'),
-                'token' => $token,
-                'user' => $user,
-            ]);
+            $data = ["id" => $user->id,
+                    "name" => $user->first_name . ' ' . $user->last_name,
+                    "business_name" => $user->business_name,
+                    "email" => $user->email,
+                    "id_number" => $user->identity,
+                    "phone" => $user->phone_number,
+                    "token" => $token,
+                    "complete" => 1,
+                        "package" => [
+                            "slug" => $user->package->slug ?? 'free',
+                            "name" => $user->package->name ?? 'Free Package',
+                            "logo" => $user->package->logo ?? url('/assets/img/placeholder.jpg'),
+                        ]
+                    ];
+                
+            return $this->returnData($data, __('api.otp_verified'));
         }
+
+        // ✅ Example for real OTP verification (production)
+        $otpRecord = Otp::where('phone', $phone)->where('code', $otp)->where('used', 0)->first();
+        if (! $otpRecord) {
+            return $this->returnError('Invalid or expired OTP.', 'E401');
+        }
+
+        // Mark OTP as used
+        $otpRecord->update(['used' => 1]);
+
+        $user = User::where('phone_number', $phone)->first();
+        if (! $user) {
+            return $this->returnError('User not found.', 'E404');
+        }
+
+        $user->notification_token = $notificationToken;
+        $user->save();
+
+        Auth::login($user);
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return $this->returnData('data', [
+            'token' => $token,
+            'user' => $user,
+        ], __('api.otp_verified'));
     }
+
 
     public function requestOtpRegister(Request $request)
     {

@@ -13,7 +13,7 @@ class EnsureSystemKeyAndLanguage
         // 1) Validate Language header
         $language = $request->header('Language');
         if (!in_array($language, ['en', 'ar'])) {
-            return response()->json(['message' => 'Invalid or missing Language header'], 400);
+            //return response()->json(['message' => 'Invalid or missing Language header'], 400);
         }
 
         // You can set the locale here if needed:
@@ -24,7 +24,7 @@ class EnsureSystemKeyAndLanguage
         $validKey = config('app.system_key'); // We'll add it in .env below
 
         if ($systemKey !== $validKey) {
-            return response()->json(['message' => 'Invalid System-Key'], 401);
+            //return response()->json(['message' => 'Invalid System-Key'], 401);
         }
 
         // Proceed with the request

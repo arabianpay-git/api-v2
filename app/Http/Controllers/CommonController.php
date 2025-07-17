@@ -15,6 +15,7 @@ use App\Models\Order;
 use App\Models\Product;
 
 use App\Models\State;
+use App\Traits\ApiResponseTrait;
 use Auth;
 use DB;
 use Illuminate\Http\JsonResponse;
@@ -22,18 +23,14 @@ use Illuminate\Http\Request;
 
 class CommonController extends Controller
 {
+    use ApiResponseTrait;
     public function getBusinessCategories(): JsonResponse
     {
         $categories = BusinessCategory::select('id', 'name')
             ->orderBy('order_level', 'asc')
             ->get();
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => $categories,
-        ]);
+        return $this->returnData($categories, 'Business categories retrieved successfully.');
     }
 
     public function getCountries(): JsonResponse
@@ -41,13 +38,8 @@ class CommonController extends Controller
         $countries = Country::select('id', 'name')
             ->orderBy('name', 'asc')
             ->get();
-
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => $countries,
-        ]);
+        
+        return $this->returnData($countries, 'Countries retrieved successfully.');
     }
 
     public function getStates($country_id): JsonResponse
@@ -56,12 +48,7 @@ class CommonController extends Controller
             ->orderBy('id', 'asc')
             ->get();
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => $states,
-        ]);
+        return $this->returnData($states, 'States retrieved successfully.');
     }
 
     public function getCities($state_id): JsonResponse
@@ -70,12 +57,7 @@ class CommonController extends Controller
             ->where('state_id', $state_id)
             ->orderBy('id', 'asc')
             ->get();
-
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => $cities,
-        ]);
+        
+        return $this->returnData($cities, 'Cities retrieved successfully.');
     }
 }

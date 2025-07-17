@@ -9,11 +9,13 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\ShopSetting;
 use App\Models\Slider;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CategoriesController extends Controller
 {
+    use ApiResponseTrait;
     public function getCategories()
     {
         $categories = Category::where('parent_id', null)
@@ -25,12 +27,7 @@ class CategoriesController extends Controller
             return $this->formatCategory($category);
         });
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => $data,
-        ]);
+        return $this->returnData($data, 'Categories retrieved successfully.');
     }
 
     private function formatCategory(Category $category)

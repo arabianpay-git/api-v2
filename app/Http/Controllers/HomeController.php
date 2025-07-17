@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\EncryptionService;
 use App\Models\AdsSlider;
 use App\Models\Brand;
 use App\Models\Category;
@@ -9,27 +10,33 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\Slider;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
     public function index(): JsonResponse
     {
+        $data = [
+            'topBrand' => $this->getTopBrands(),
+            'featuredCategories' => $this->getFeaturedCategories(),
+            'bestSellerProducts' => $this->getBestSellerProducts(),
+            'featuredProducts' => $this->getFeaturedProducts(),
+            'topShops' => $this->getTopShops(),
+            'sliders' => $this->getSliders(),
+            'banner0' => [],
+            'banner1' => $this->getBanner1(),
+            'banner2' => [],
+            'products_order' => []
+        ];
+
+        $encryptionService = new EncryptionService();
+        $encryptedData = $encryptionService->encrypt($data);
+
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
             'msg' => '',
-            'data' => [
-                'topBrand' => $this->getTopBrands(),
-                'featuredCategories' => $this->getFeaturedCategories(),
-                'bestSellerProducts' => $this->getBestSellerProducts(),
-                'featuredProducts' => $this->getFeaturedProducts(),
-                'topShops' => $this->getTopShops(),
-                'sliders' => $this->getSliders(),
-                'banner0' => [],
-                'banner1' => $this->getBanner1(),
-                'banner2' => [],
-                'products_order' => []
-            ],
+            'data' => $encryptedData,
         ]);
     }
 
@@ -174,5 +181,30 @@ class HomeController extends Controller
                 'target' => '',
             ];
         });
+    }
+
+    public function process(Request $request)
+    {
+        $request->validate([
+            'text' => 'required',
+            'operation' => 'required|in:encrypt,decrypt',
+        ]);
+
+        $encryptionService = new EncryptionService();
+        $result = null;
+
+        if ($request->operation === 'encrypt') {
+            $result = $encryptionService->encrypt($request->text);
+        } else {
+            $result = $encryptionService->decrypt($request->text);
+        }
+
+        return($result); // Debugging output, remove in production
+
+        return view('encryption', [
+            'input' => $request->text,
+            'operation' => $request->operation,
+            'result' => $result,
+        ]);
     }
 }

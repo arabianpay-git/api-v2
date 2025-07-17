@@ -10,11 +10,13 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\ShopSetting;
 use App\Models\Slider;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SuppliersController extends Controller
 {
+    use ApiResponseTrait;
    public function getSuppliers()
     {
         $shops = ShopSetting::orderBy('id', 'asc')->get();
@@ -31,12 +33,7 @@ class SuppliersController extends Controller
             ];
         });
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => $data,
-        ]);
+        return $this->returnData($data, 'Suppliers retrieved successfully.');
     }
 
     public function getSupplierDetails($id)
@@ -45,27 +42,25 @@ class SuppliersController extends Controller
 
         $user = $shop->user; // Assuming ShopSetting has relation to User
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => [
-                'id' => $shop->id,
-                'name' => $shop->name ?? 'Unknown',
-                'logo' => $shop->logo ? url($shop->logo) : asset('assets/img/placeholder.jpg'),
-                'return_policy' => '',        // Replace with actual data if exists
-                'exchange_policy' => '',      // Replace with actual data if exists
-                'cancel_policy' => '',        // Replace with actual data if exists
-                'top_banner' => asset('assets/img/placeholder.jpg'), // Replace if shop has a real banner
-                'address' => $shop->address ?? '',
-                'phone' => $shop->phone_number ?? '',
-                'email' => $user ? $user->email : '',
-                'rating' => 0,                // Replace if you have ratings
-                'num_reviews' => 0,           // Replace if you have reviews
-                'is_followed' => false,       // Replace if you have follow logic
-                'featured_products' => [],    // Replace if you want actual featured products
-            ],
-        ]);
+        $data = [
+            'id' => $shop->id,
+            'name' => $shop->name ?? 'Unknown',
+            'logo' => $shop->logo ? url($shop->logo) : asset('assets/img/placeholder.jpg'),
+            'return_policy' => '', // Replace with actual data if exists
+            'exchange_policy' => '', // Replace with actual data if exists
+            'cancel_policy' => '', // Replace with actual data if exists
+            'top_banner' => asset('assets/img/placeholder.jpg'), // Replace if shop has a real banner
+            'address' => $shop->address ?? '',
+            'phone' => $shop->phone_number ?? '',
+            'email' => $user ? $user->email : '',
+            'rating' => 0, // Replace if you have ratings
+            'num_reviews' => 0, // Replace if you have reviews
+            'is_followed' => false, // Replace if you have follow logic
+            'featured_products' => [], // Replace if you want actual featured products
+        ];
+
+        return $this->returnData($data, 'Supplier details retrieved successfully.');
+        
     }
 
     public function getSupplierProducts(Request $request, $id)
@@ -96,12 +91,7 @@ class SuppliersController extends Controller
             ];
         });
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => $data,
-        ]);
+        return $this->returnData($data, 'Supplier products retrieved successfully.');
     }
 
 }

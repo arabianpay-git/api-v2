@@ -9,10 +9,12 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\ShopSetting;
 use App\Models\Slider;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
 class ProductsController extends Controller
 {
+    use ApiResponseTrait;
 
     public function index()
     {
@@ -54,16 +56,12 @@ class ProductsController extends Controller
                 'in_stock' => (bool)($product->current_stock > 0),
             ];
         });
-
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => [
+        $data = [
                 'total' => $products->total(),
                 'products' => $productsTransformed,
-            ],
-        ]);
+        ];
+         
+        return $this->returnData($data);
     }
 
     /**
@@ -141,48 +139,46 @@ class ProductsController extends Controller
         }) : [];
 
         */
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => [
-                'id' => $product->id,
-                'name' => $product->name,
-                'slug' => $product->slug,
-                'added_by' => $product->added_by,
-                'seller_id' => $product->user_id,
-                'shop_id' => optional($product->shop)->id ?? null,
-                'shop_name' => optional($product->shop)->name ?? '',
-                'shop_logo' => optional($product->shop) ? $product->shop->logo : null,
-                'photos' => $photos,
-                'thumbnail_image' => url($product->thumbnail),
-                'tags' => $tags,
-                'choice_options' => $choiceOptions,
-                'colors' => $colors,
-                'has_discount' => $product->discount > 0,
-                'discount' => (float)$product->discount,
-                'discount_type' => $product->discount_type,
-                'stroked_price' => (float)$product->unit_price,
-                'main_price' => (float)$this->calculateMainPrice($product),
-                'currency_symbol' => 'SR',
-                'current_stock' => (int)$product->current_stock,
-                'unit' => $product->unit,
-                'rating' => (float)$product->rating,
-                'num_reviews' => 0, // Fill with actual reviews count if available
-                'min_qty' => (int)$product->min_qty,
-                'description' => $product->description,
-                'downloads' => null, // or fill with actual download links if any
-                'brand' => [
-                    'id' => optional($product->brand)->id ?? null,
-                    'name' => optional($product->brand)->name ?? '',
-                    'logo' => optional($product->brand) ? url($product->brand->logo) : null,
-                ],
-                'is_wholesale' => false, // update if you have wholesale
-                'wholesale' => [], // fill if you have wholesale tiers
-                'est_shipping_time' => (int)($product->est_shipping_days ?? 0),
-                'stock' => 0,
+
+        $data = [
+            'id' => $product->id,
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'added_by' => $product->added_by,
+            'seller_id' => $product->user_id,
+            'shop_id' => optional($product->shop)->id ?? null,
+            'shop_name' => optional($product->shop)->name ?? '',
+            'shop_logo' => optional($product->shop) ? url($product->shop->logo) : null,
+            'photos' => $photos,
+            'thumbnail_image' => url($product->thumbnail),
+            'tags' => $tags,
+            'choice_options' => $choiceOptions,
+            'colors' => $colors,
+            'has_discount' => $product->discount > 0,
+            'discount' => (float)$product->discount,
+            'discount_type' => $product->discount_type,
+            'stroked_price' => (float)$product->unit_price,
+            'main_price' => (float)$this->calculateMainPrice($product),
+            'currency_symbol' => 'SR',
+            'current_stock' => (int)$product->current_stock,
+            'unit' => $product->unit,
+            'rating' => (float)$product->rating,
+            'num_reviews' => 0, // Fill with actual reviews count if available
+            'min_qty' => (int)$product->min_qty,
+            'description' => $product->description,
+            //'downloads' => [], // or fill with actual download links if any
+            'brand' => [
+                'id' => optional($product->brand)->id ?? null,
+                'name' => optional($product->brand)->name ?? '',
+                'logo' => optional($product->brand) ? url($product->brand->logo) : null,
             ],
-        ]);
+            'is_wholesale' => false, // update if you have wholesale
+            //'wholesale' => [], // fill if you have wholesale tiers
+            //'est_shipping_time' => (int)($product->est_shipping_days ?? 0),
+        ];
+
+        return $this->returnData($data);
+       
     }
 
     public function getProductFilters()
@@ -224,16 +220,13 @@ class ProductsController extends Controller
                 ];
             });
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => '',
-            'data' => [
-                'brands' => $brands,
-                'categories' => $categories,
-                'stores' => $stores,
-            ],
-        ]);
+        $data = [
+            'brands' => $brands,
+            'categories' => $categories,
+            'stores' => $stores,
+        ];
+
+        return $this->returnData($data);
     }
 
     /**

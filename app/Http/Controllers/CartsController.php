@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\ShopSetting;
 use App\Models\Slider;
+use App\Traits\ApiResponseTrait;
 use Auth;
 use DB;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 
 class CartsController extends Controller
 {
+    use ApiResponseTrait;
     public function setCart(Request $request)
     {
         
@@ -82,15 +84,12 @@ class CartsController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'status' => true,
-                'errNum' => 'S200',
-                'msg' => 'Cart created successfully',
-                'data' => [
+            $data = [
                     'cart_id' => $cart->id,
                     'grand_total' => $cart->grand_total,
-                ],
-            ]);
+            ];
+
+            return $this->returnData($data, 'Cart created successfully');
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -152,21 +151,18 @@ class CartsController extends Controller
                 ];
             });
 
-            return response()->json([
-                'status' => true,
-                'errNum' => 'S200',
-                'msg' => '',
-                'data' => [
-                    'id' => $cart->id,
-                    'sub_total' => (float) $cart->sub_total,
-                    'discount' => (float) $cart->discount,
-                    'coupon_discount' => (float) $cart->coupon_discount,
-                    'total_discount' => (float) $total_discount,
-                    'grand_total' => (float) $cart->grand_total,
-                    'shipping_cost' => (float) $cart->shipping_cost,
-                    'items' => $items,
-                ],
-            ]);
+            $data = [
+                'id' => $cart->id,
+                'sub_total' => (float) $cart->sub_total,
+                'discount' => (float) $cart->discount,
+                'coupon_discount' => (float) $cart->coupon_discount,
+                'total_discount' => (float) $total_discount,
+                'grand_total' => (float) $cart->grand_total,
+                'shipping_cost' => (float) $cart->shipping_cost,
+                'items' => $items,
+            ];
+
+            return $this->returnData($data, 'Cart fetched successfully');
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,

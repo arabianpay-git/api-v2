@@ -11,6 +11,7 @@ use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
 
+use App\Traits\ApiResponseTrait;
 use Auth;
 use DB;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 
 class AddressesController extends Controller
 {
+    use ApiResponseTrait;
     public function getAddresses()
     {
         $user = auth()->user();
@@ -80,13 +82,8 @@ class AddressesController extends Controller
                 'phone'      => $request->phone,
                 'set_default'=> false,
             ]);
-
-            return response()->json([
-                'status' => true,
-                'errNum' => 'S200',
-                'msg'    => 'Address created successfully.',
-                'data'   => $address,
-            ]);
+            return $this->returnData($address, 'Address created successfully.');
+           
 
         } catch (\Exception $e) {
             return response()->json([
