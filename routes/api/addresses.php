@@ -2,7 +2,10 @@
 
 use App\Http\Controllers\AddressesController;
 
-Route::prefix('v2')->middleware(['auth:sanctum', 'sanctum.auth.json'])->group(function () {
-    Route::get('/addresses/get', [AddressesController::class, 'getAddresses']);
-    Route::post('/addresses/store', [AddressesController::class, 'store']);
+Route::prefix('v2/addresses/')->middleware(['auth:sanctum', 'sanctum.auth.json'])->group(function () {
+    Route::get('get', [AddressesController::class, 'getAddresses']);
+    Route::post('store', [AddressesController::class, 'store']);
+    Route::post('update/{address_id}', [AddressesController::class, 'update']);
+    Route::post('set-default', [AddressesController::class, 'setDefault']);
+    Route::post('remove', [AddressesController::class, 'remove']);
 });

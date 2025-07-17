@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\EncryptionService;
 use App\Models\Otp;
+use App\Services\NafathService;
 use Auth;
 use Carbon\Carbon;
 use DB;
@@ -11,6 +12,7 @@ use Hash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use App\Models\User;
+use Log;
 use Str;
 use App\Traits\ApiResponseTrait;
 use Validator;
@@ -150,91 +152,221 @@ class AuthController extends Controller
 
     public function requestOtpRegister(Request $request)
     {
-        $request->validate([
-            'phone' => 'required|string|regex:/^\d{9,15}$/',
-            'id_number' => 'required|string|min:10|max:15',
-        ]);
+        $encryptionService = new EncryptionService();
 
-        $code = rand(100000, 999999); 
-        $expiresAt = now()->addMinutes(5);
+        // فك التشفير
+        $phone = $encryptionService->decrypt($request->input('phone'));
+        $idNumber = $encryptionService->decrypt($request->input('id_number'));
 
-        DB::table('otps')->updateOrInsert(
-            ['phone' => $request->phone],
-            [
-                'code' => $code,
-                'identity' => $request->id_number,
-                'used' => 0,
-                'attempts' => 0,
-                'sends' => DB::raw('sends + 1'),
-                'expires_at' => $expiresAt,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ]
-        );
+        // التحقق من صحة البيانات
+        Validator::make([
+            'phone' => $phone,
+            'id_number' => $idNumber,
+        ], [
+            'phone' => 'required|regex:/^\d{9,15}$/|unique:users,phone_number',
+            'id_number' => 'required|digits_between:5,20',
+        ])->validate();
 
-        // TODO: send SMS via your service
-
-        return response()->json([
-            'status' => true,
-            'msg' => 'تم إرسال رمز التحقق بنجاح.',
-        ]);
-    }
-
-    public function verifyRegistration(Request $request)
-    {
-        $request->validate([
-            'phone' => 'required|string|regex:/^\d{9,15}$/',
-            'otp' => 'required|digits:6',
-        ]);
-
-        $otp = DB::table('otps')
-            ->where('phone', $request->phone)
-            ->where('code', $request->otp)
-            ->where('used', 0)
-            ->where('expires_at', '>', now())
-            ->first();
-
-        if (! $otp) {
-            DB::table('otps')
-                ->where('phone', $request->phone)
-                ->increment('attempts');
-
+        
+        if (User::where('phone_number', $encryptionService->db_encrypt($phone))
+            ->orWhere('iqama',$encryptionService->db_encrypt($idNumber))->exists()) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E400',
-                'msg' => 'رمز التحقق غير صحيح أو منتهي.',
-            ], 422);
+                'errNum' => 'E409',
+                'msg' => 'User with this phone number already exists.',
+            ], 409);
         }
 
-        // تحقق من الهوية باستخدام بيانات otp->identity
-        $idNumber = $otp->identity;
+        // إنشاء أو تحديث OTP
+        $otpCode = rand(100000, 999999);
 
-        // TODO: تحقق من الهوية عبر نفاذ أو أي نظام خارجي
-        return $this->callCheckStatusCurl($idNumber,$request->phone);
-        // if (! Nafath::verify($idNumber)) { ... }
-
-
-        DB::table('otps')->where('id', $otp->id)->update(['used' => 1]);
-
-        $user = User::firstOrCreate(
-            ['phone_number' => $request->phone],
+        Otp::updateOrCreate(
+            ['phone' => $phone],
             [
-                'first_name' => 'User',
-                'last_name' => 'Name',
-                'email' => uniqid('user_').'@example.com',
-                'password' => bcrypt(Str::random(16)),
-                'identity' => $idNumber,
+                'id_number' => $idNumber,
+                'code' => $otpCode,
+                'expires_at' => now()->addMinutes(10),
+                'used' => 0,
+                'attempts' => DB::raw('attempts + 1'),
+                'sends' => DB::raw('sends + 1'),
             ]
         );
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // يمكنك إرسال الـ OTP برسالة SMS، أو فقط تسجيله في الـ Log للتجربة
+        Log::info('OTP for ' . $phone . ': ' . $otpCode);
 
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'تم التحقق من المستخدم وتسجيله.',
-            'token' => $token,
-            'user' => $user,
+            'msg' => 'OTP sent successfully. Complete registration after verification.',
+        ]);
+    }
+    
+
+    public function verifyRegistration(Request $request)
+    {
+        $encryptionService = new EncryptionService();
+
+        // فك التشفير
+        $phone = $encryptionService->decrypt($request->input('phone'));
+        $otp = $encryptionService->decrypt($request->input('otp'));
+
+        // التحقق من صحة الفورم
+        Validator::make([
+            'phone' => $phone,
+            'otp' => $otp,
+        ], [
+            'phone' => 'required|regex:/^\d{9,15}$/',
+            'otp' => 'required|digits:6',
+        ])->validate();
+
+        // تحقق من الـ OTP
+        $otpRecord = Otp::where('phone', $phone)
+            ->where('code', $otp)
+            ->where('used', 0)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (! $otpRecord) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E401',
+                'msg' => 'Invalid or expired OTP.',
+            ], 401);
+        }
+
+        $otpRecord->update(['used' => 1]);
+
+        // بعد نجاح OTP، نحصل على رقم الهوية
+        $idNumber = $otpRecord->id_number;
+
+        return $this->returnData(['id_number'=>$idNumber], 'OTP verified successfully.');
+    }
+
+    public function verifyWithNafath(Request $request, NafathService $nafath)
+    {
+        $request->validate([
+            'id_number' => 'required|digits_between:5,20',
+        ]);
+
+        $response = $nafath->initiateVerification($request->id_number);
+
+        if (isset($response['status']) && str_starts_with($response['status'], '400-')) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E400',
+                'msg' => $response['message'] ?? 'Nafath Error',
+            ], 400);
+        }
+
+        if (!isset($response['transId'], $response['random'])) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E422',
+                'msg' => 'Cannot start session, invalid Nafath response.',
+            ], 422);
+        }
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => 'Nafath verification started successfully.',
+            'nafath_trans_id' => $response['transId'],
+            'nafath_random' => $response['random'],
+        ]);
+    }
+
+    public function checkNafathStatus(Request $request, NafathService $nafath)
+    {
+        $request->validate([
+            'id_number' => 'required|string',
+            'trans_id' => 'required|string',
+        ]);
+
+        $response = $nafath->processCallback(
+            $request->trans_id,
+            $request->id_number,
+        );
+
+        $data = $response['data'];
+        if(empty($data)) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E404',
+                'msg' => 'No data found for the provided ID number.',
+            ], 404);
+        }
+
+        $otp = Otp::where('id_number', $request->id_number)
+            ->where('used', 1)->orderBy('created_at', 'desc')
+            ->first();
+        $phone = $otp ? $otp->phone : null;
+        try{
+
+            $user = $this->createUserFromNafath($data, $phone);
+
+            return response()->json([
+                'status' => true,
+                'errNum' => 'S200',
+                'msg' => 'Nafath verification completed successfully.',
+                'user' => [
+                    'id' => $user->id,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'identity_number' => $user->identity_number,
+                    'phone_number' => $user->phone_number,
+                ],
+            ]);
+        }catch (\Exception $e) {
+            Log::error('Error creating user from Nafath data: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E500',
+                'msg' => 'Failed to create user from Nafath data.',
+            ], 500);
+        }
+        
+
+        
+
+    }
+
+    public function createUserFromNafath(array $nafathData, string $phone)
+    {
+        $user = User::create([
+            'first_name'   => $nafathData['first_name#en'] ?? '',
+            'last_name'    => $nafathData['family_name#en'] ?? '',
+            'user_type'    => 'user',
+            'email'        => $phone . '@arabianpay.net', // Temporary email
+            'business_name'=> null,
+            'iqama'        => $nafathData['id'] ?? null,
+            'phone_number' => $phone,
+            'department_id'=> null,
+            'is_manager'   => false,
+            'country_id'   => null,
+            'state_id'     => null,
+            'city_id'      => null,
+            'email_verified_at' => null,
+            'password'     => Hash::make(Str::random(10)), // كلمة مرور مؤقتة
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
+            'remember_token' => null,
+            'profile_photo_path' => null,
+        ]);
+
+        return $user;
+    }
+
+    public function logout(Request $request)
+    {
+        // حذف التوكين الحالي فقط (Logout لهذا الجهاز فقط)
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => 'Logout successfully.',
         ]);
     }
 

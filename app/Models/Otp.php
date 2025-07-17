@@ -7,7 +7,7 @@ use Carbon\Carbon;
 
 class Otp extends Model
 {
-    protected $fillable = ['phone', 'code', 'expires_at', 'sends'];
+    protected $fillable = ['phone', 'code', 'expires_at', 'sends','used','id_number'];
 
     protected $casts = [
         'expires_at' => 'datetime',

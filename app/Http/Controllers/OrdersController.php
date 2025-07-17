@@ -160,6 +160,140 @@ class OrdersController extends Controller
         }
     }
 
+    public function getPendingOrders(Request $request)
+    {
+        $orders = Order::where('user_id', $request->user()->id)
+            ->where('payment_status', 'pending')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'data' => $orders
+        ]);
+    }
+
+    public function getPendingOrderDetails(Request $request)
+    {
+        $request->validate([
+            'order_id' => 'required|exists:orders,id',
+        ]);
+
+        $order = Order::where('id', $request->order_id)
+            ->where('user_id', $request->user()->id)
+            ->where('payment_status', 'pending')
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E404',
+                'msg' => 'Pending order not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'data' => $order
+        ]);
+    }
+
+    public function removePendingOrder(Request $request)
+    {
+        $request->validate([
+            'order_id' => 'required|exists:orders,id',
+        ]);
+
+        $order = Order::where('id', $request->order_id)
+            ->where('user_id', $request->user()->id)
+            ->where('payment_status', 'pending')
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E404',
+                'msg' => 'Pending order not found.',
+            ], 404);
+        }
+
+        $order->delete();
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => 'Pending order removed successfully.'
+        ]);
+    }
+
+    public function getOrders(Request $request)
+    {
+        $orders = Order::where('user_id', $request->user()->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'data' => $orders
+        ]);
+    }
+
+    public function getOrderDetails(Request $request, $id)
+    {
+        $order = Order::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E404',
+                'msg' => 'Order not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'data' => $order
+        ]);
+    }
+
+    public function getAddress(Request $request, $id)
+    {
+        $order = Order::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E404',
+                'msg' => 'Order not found.',
+            ], 404);
+        }
+
+        $address = [
+            'first_name' => $order->shipping_first_name,
+            'last_name' => $order->shipping_last_name,
+            'address_line1' => $order->shipping_address_line1,
+            'address_line2' => $order->shipping_address_line2,
+            'city' => $order->shipping_city,
+            'state' => $order->shipping_state,
+            'country' => $order->shipping_country,
+            'postal_code' => $order->shipping_postal_code,
+        ];
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'data' => $address
+        ]);
+    }
+
 
 
 }

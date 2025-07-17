@@ -9,4 +9,9 @@ Route::prefix('v2/auth')->group(function () {
 Route::prefix('v2/auth/register')->group(function () {
     Route::post('/request-otp', [AuthController::class, 'requestOtpRegister']);
     Route::post('/verify-otp', [AuthController::class, 'verifyRegistration']);
+    Route::post('/verify-id-with-nafath', [AuthController::class, 'verifyWithNafath']);
+    Route::post('/check-nafath-status', [AuthController::class, 'checkNafathStatus']);
+
 });
+
+Route::middleware(['auth:sanctum', 'sanctum.auth.json'])->post('v2/auth/logout', [AuthController::class, 'logout']);

@@ -89,6 +89,86 @@ class AddressesController extends Controller
         }
     }
 
+    public function update(Request $request, $address_id)
+    {
+        $request->validate([
+            'longitude'  => 'required|numeric',
+            'latitude'   => 'required|numeric',
+            'name'       => 'required|string|max:255',
+            'address'    => 'required|string|max:500',
+            'country_id' => 'required|integer|exists:countries,id',
+            'state_id'   => 'required|integer|exists:states,id',
+            'city_id'    => 'required|integer|exists:cities,id',
+            'phone'      => 'required|string|regex:/^\d{7,15}$/',
+        ]);
+
+        $address = Address::find($address_id);
+        if (!$address || $address->user_id !== Auth::id()) {
+            return response()->json(['error' => 'Address not found or unauthorized'], 404);
+        }
+
+        try {
+            $address->update([
+                'longitude'  => $request->longitude,
+                'latitude'   => $request->latitude,
+                'name'       => $request->name,
+                'address'    => $request->address,
+                'country_id' => $request->country_id,
+                'state_id'   => $request->state_id,
+                'city_id'    => $request->city_id,
+                'phone'      => $request->phone,
+            ]);
+            return $this->returnData($address, 'Address updated successfully.');
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E500',
+                'msg'    => 'Failed to update address: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function setDefault(Request $request)
+    {
+        $request->validate([
+            'address_id' => 'required|exists:addresses,id',
+        ]);
+
+        $userId = $request->user()->id;
+
+        // Reset all addresses
+        Address::where('user_id', $userId)->update(['set_default' => 0]);
+
+        // Set the selected address as default
+        Address::where('id', $request->address_id)
+            ->where('user_id', $userId)
+            ->update(['set_default' => 1]);
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => 'Default address updated successfully.'
+        ]);
+    }
+
+    public function remove(Request $request)
+    {
+        $request->validate([
+            'address_id' => 'required|exists:addresses,id',
+        ]);
+
+        $userId = $request->user()->id;
+
+        Address::where('id', $request->address_id)
+            ->where('user_id', $userId)
+            ->delete();
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => 'Address removed successfully.'
+        ]);
+    }
 
 
 }

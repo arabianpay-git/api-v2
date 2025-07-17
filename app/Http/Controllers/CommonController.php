@@ -60,4 +60,47 @@ class CommonController extends Controller
         
         return $this->returnData($cities, 'Cities retrieved successfully.');
     }
+
+    public function getConfigSystemApp(): JsonResponse
+    {
+        // Assuming you have a model for system configurations
+        //$config = DB::table('system_configurations')->first();
+        $config = null; // Replace with actual logic to fetch system configuration
+        return $this->returnData($config, 'System configuration retrieved successfully.');
+    }
+
+    public function getSocialMedia(): JsonResponse
+    {
+        //$socialMedia = DB::table('social_media')->get();
+        $socialMedia = null; // Replace with actual logic to fetch social media links
+        return $this->returnData($socialMedia, 'Social media links retrieved successfully.');
+    }
+
+    public function getCommonQuestion(): JsonResponse
+    {
+        //$questions = DB::table('common_questions')->get();
+        $questions = null;
+        return $this->returnData($questions, 'Common questions retrieved successfully.');
+    }
+
+    public function changeLanguage(Request $request): JsonResponse
+    {
+        $language = $request->input('language');
+        if (!in_array($language, ['en', 'ar'])) {
+            return $this->returnError('Invalid language code.');
+        }
+
+        // Assuming you have a way to set the language in the session or user profile
+        session(['app_locale' => $language]);
+
+        return $this->returnSuccess('Language changed successfully.');
+    }
+
+    public function adsStatistics(): JsonResponse
+    {
+        // Assuming you have a model for ads statistics
+        $statistics = DB::table('ads_statistics')->get();
+
+        return $this->returnData($statistics, 'Ads statistics retrieved successfully.');
+    }
 }

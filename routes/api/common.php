@@ -8,4 +8,10 @@ Route::prefix('v2')->middleware(['auth:sanctum', 'sanctum.auth.json'])->group(fu
     Route::get('/common/get-countries', [CommonController::class, 'getCountries']);
     Route::get('/common/get-states-by-country/{country_id}', [CommonController::class, 'getStates']);
     Route::get('/common/get-cities-by-state/{state_id}', [CommonController::class, 'getCities']);
+    Route::get('/common/get-config-system-app', [CommonController::class, 'getConfigSystemApp']);
+    Route::get('/common/get-social-media', [CommonController::class, 'getSocialMedia']);
+    Route::get('/common/get-common-question', [CommonController::class, 'getCommonQuestion']);
+    Route::get('/common/change-language', [CommonController::class, 'changeLanguage']);
+    Route::get('/common/ads-statistics', [CommonController::class, 'adsStatistics']);
+    
 });
