@@ -23,3 +23,4 @@ require __DIR__.'/api/addresses.php';
 require __DIR__.'/api/payments.php';
 require __DIR__.'/api/common.php';
 require __DIR__.'/api/nafath.php';
+require __DIR__.'/api/pages.php';
