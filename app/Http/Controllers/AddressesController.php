@@ -47,13 +47,8 @@ class AddressesController extends Controller
                     'is_default'   => $address->set_default ? true : false,
                 ];
             });
-
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg'    => '',
-            'data'   => $addresses,
-        ]);
+        
+        return $this->returnData($addresses, 'Addresses retrieved successfully.');
     }
 
     public function store(Request $request)
