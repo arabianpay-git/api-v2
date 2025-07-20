@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\EncryptionService;
+use App\Models\Customer;
+use App\Models\NafathVerification;
 use App\Models\Otp;
 use App\Services\NafathService;
 use Auth;
@@ -12,6 +14,7 @@ use Hash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 use Log;
 use Str;
 use App\Traits\ApiResponseTrait;
@@ -30,8 +33,11 @@ class AuthController extends Controller
     const STATUS_ENDPOINT = 'https://api.arabianpay.co/api/v1/check-nafath-status';
     public function requestOtp(Request $request)
     {
-        $request->validate(['phone' => 'required|string|regex:/^\d{9,15}$/']);
-        $phone = $request->phone;
+        $encryptionService = new EncryptionService();
+        $request->validate(['phone_number' => 'required|string']);
+        
+        // فك التشفير
+        $phone = $encryptionService->decrypt($request->input('phone_number'));
 
         // Generate 6-digit OTP
         $otpCode = rand(100000, 999999);
@@ -49,7 +55,8 @@ class AuthController extends Controller
             DB::table('otps')->where('id', $existingOtp->id)->increment('sends');
             logger("OTP reused for {$phone}: {$existingOtp->code}");
 
-            return response()->json(['message' => __('api.otp_sent')]);
+            return $this->returnData([], __('api.otp_sent'));
+
         }
 
         // Insert new OTP
@@ -246,10 +253,13 @@ class AuthController extends Controller
     public function verifyWithNafath(Request $request, NafathService $nafath)
     {
         $request->validate([
-            'id_number' => 'required|digits_between:5,20',
+            'id_number' => 'required',
         ]);
 
-        $response = $nafath->initiateVerification($request->id_number);
+        $encryptionService = new EncryptionService();
+        $idNumber = $encryptionService->decrypt($request->input('id_number'));
+
+        $response = $nafath->initiateVerification($idNumber);
 
         if (isset($response['status']) && str_starts_with($response['status'], '400-')) {
             return response()->json([
@@ -283,52 +293,72 @@ class AuthController extends Controller
             'trans_id' => 'required|string',
         ]);
 
-        $response = $nafath->processCallback(
-            $request->trans_id,
-            $request->id_number,
-        );
+        $encryptionService = new EncryptionService();
+        $idNumber = $encryptionService->decrypt($request->input('id_number'));
 
-        $data = $response['data'];
-        if(empty($data)) {
-            return response()->json([
-                'status' => false,
-                'errNum' => 'E404',
-                'msg' => 'No data found for the provided ID number.',
-            ], 404);
-        }
+        try {
+            $response = $nafath->processCallback(
+                $request->trans_id,
+                $idNumber,
+            );
 
-        $otp = Otp::where('id_number', $request->id_number)
-            ->where('used', 1)->orderBy('created_at', 'desc')
-            ->first();
-        $phone = $otp ? $otp->phone : null;
-        try{
+            $data = $response['data'] ?? null;
+            $status = $data ? 'approved' : 'error';
 
-            $user = $this->createUserFromNafath($data, $phone);
+            // استعلام otp للحصول على الهاتف
+            $otp = Otp::where('id_number', $idNumber)
+                ->where('used', 1)->orderBy('created_at', 'desc')
+                ->first();
+            $phone = $otp ? $otp->phone : null;
 
-            return response()->json([
-                'status' => true,
-                'errNum' => 'S200',
-                'msg' => 'Nafath verification completed successfully.',
-                'user' => [
-                    'id' => $user->id,
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'identity_number' => $user->identity_number,
-                    'phone_number' => $user->phone_number,
-                ],
+            $encryptionService = new EncryptionService();
+
+            // حفظ السجل في جدول nafath_verifications
+            NafathVerification::create([
+                'national_id'    => $idNumber,
+                'iqama_hash'     => Hash::make($idNumber),
+                'phone_number'   => $phone,
+                'trans_id'       => $request->trans_id,
+                'random'         => Str::random(2),
+                'status'         => $status,
+                'nafath_response'=> json_encode($data['data'] ?? []),
             ]);
-        }catch (\Exception $e) {
-            Log::error('Error creating user from Nafath data: ' . $e->getMessage());
+
+            if (!$data) {
+                return response()->json([
+                    'status' => false,
+                    'errNum' => 'E404',
+                    'msg' => 'No data found for the provided ID number.',
+                ], 404);
+            }
+
+            return $this->returnData([
+                'id_number' => $encryptionService->db_encrypt($idNumber),
+                'phone' => $phone,
+                'nafath_data' => $data,
+            ], 'Nafath verification completed successfully.');
+          
+        } catch (\Exception $e) {
+            Log::error('Error processing Nafath: ' . $e->getMessage());
+
+            NafathVerification::create([
+                'national_id'    => $idNumber,
+                'iqama_hash'     => Hash::make($idNumber),
+                'phone_number'   => $phone ?? null,
+                'trans_id'       => $request->trans_id,
+                'random'         => Str::random(2),
+                'status'         => 'error',
+                'error_code'     => 'E500',
+                'nafath_response'=> null,
+                'verified_at'    => null,
+            ]);
+
             return response()->json([
                 'status' => false,
                 'errNum' => 'E500',
-                'msg' => 'Failed to create user from Nafath data.',
+                'msg' => 'Failed to process Nafath verification.',
             ], 500);
         }
-        
-
-        
-
     }
 
     public function createUserFromNafath(array $nafathData, string $phone)
@@ -357,6 +387,118 @@ class AuthController extends Controller
 
         return $user;
     }
+
+
+    public function completeRegisterCustomer(Request $request)
+    {
+        try{
+            $request->validate([
+                'id_number' => 'required|string|unique:customers,id_number',
+                'phone' => 'required|string|unique:users,phone_number',
+                'cr_number' => 'required|string|unique:customers,cr_number',
+                'owner_name' => 'required|string',
+                'trade_name' => 'required|string',
+                'category_id' => 'required|array',
+                'category_id.*' => 'integer|exists:categories,id',
+                'country_id' => 'required|integer|exists:countries,id',
+                'state_id' => 'required|integer|exists:states,id',
+                'city_id' => 'required|integer|exists:cities,id',
+                'cr_file' => 'required|file|mimes:pdf,jpg,png|max:2048',
+            ]);
+        }catch (ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E422',
+                'msg' => 'Validation error.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
+        
+
+        //$encryptionService = new EncryptionService();
+        //$idNumber = $encryptionService->decrypt($request->input('id_number'));
+        //$phone = $encryptionService->decrypt($request->input('phone'));
+        $idNumber = $request->input('id_number');
+        $phone = $request->input('phone');
+
+        DB::beginTransaction();
+
+        $nafathVerification = NafathVerification::where('phone_number', $phone)
+            ->where('status', 'approved')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (!empty($nafathVerification)) {
+            if(!empty($nafathVerification->nafath_response)){
+                try {
+                            $nafathData = json_decode($nafathVerification->nafath_response, true);
+
+                            // 1️⃣ رفع ملف السجل التجاري
+                            $crPath = $request->file('cr_file')->store('cr_files', 'public');
+                            // 1️⃣ استخراج البيانات المطلوبة من Nafath
+                            $firstName = $nafathData['first_name#en'] ?? $request->owner_name;
+                            $fatherName = $nafathData['father_name#en'] ?? '';
+                            $familyName = $nafathData['family_name#en'] ?? '';
+                            $dateOfBirth = $nafathData['dob#g'] ?? null;
+                            // 2️⃣ انشاء المستخدم في جدول users
+                            $user = User::create([
+                                'first_name'     => $firstName,
+                                'last_name'      => $familyName,
+                                'user_type'      => 'user',
+                                'email'          => $phone . '@example.com',
+                                'phone_number'   => $phone,
+                                'business_name'  => $request->trade_name,
+                                'country_id'     => $request->country_id,
+                                'state_id'       => $request->state_id,
+                                'city_id'        => $request->city_id,
+                                'password'       => Hash::make('12345678'),
+                            ]);
+
+                            // 3️⃣ انشاء العميل في جدول customers
+                            $customer = Customer::create([
+                                'user_id'          => $user->id,
+                                'id_owner'         => $firstName . ' ' . $fatherName . ' ' . $familyName,
+                                'id_number'        => $idNumber,
+                                'cr_number'        => $request->cr_number,
+                                'business_category_id' => implode(',', $request->category_id),
+                                'address'          => '',
+                                'cr_data'          => json_encode(['file_path' => $crPath]),
+                                'check_nafath'     => 1,
+                                'nafath_data'      => $nafathVerification->nafath_response,
+                                'date_of_birth'    => $dateOfBirth,
+                                'status'           => 'pending',
+                            ]);
+
+                            DB::commit();
+
+                        return $this->returnData(['user_id' => $user->id,
+                                'customer_id' => $customer->id,], 'Registration completed successfully.');  
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            Log::error('Registration completion failed: ' . $e->getMessage());
+
+                            return response()->json([
+                                'status' => false,
+                                'errNum' => 'E500',
+                                'msg' => 'An error occurred during registration.',
+                            ], 500);
+                        }
+            }
+                return response()->json([
+                'status' => false,
+                'errNum' => 'E500',
+                'msg' => 'The Nafath response is empty.',
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => false,
+            'errNum' => 'E500',
+            'msg' => 'The Nafath verification is not completed',
+        ], 500);
+        
+    }
+
 
     public function logout(Request $request)
     {

@@ -262,6 +262,39 @@ class OrdersController extends Controller
         ]);
     }
 
+    
+    public function cancelOrder(Request $request,$id)
+    {
+        $order = Order::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E404',
+                'msg' => 'Order not found.',
+            ], 404);
+        }
+
+        if ($order->delivery_status !== 'pending') {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E400',
+                'msg' => 'Only pending orders can be cancelled.',
+            ], 400);
+        }
+
+        $order->general_status = 'cancelled';
+        $order->save();
+
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => 'Order cancelled successfully.'
+        ]);
+    }
+
     public function getAddress(Request $request, $id)
     {
         $order = Order::where('id', $id)

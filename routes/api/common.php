@@ -11,7 +11,7 @@ Route::prefix('v2')->middleware(['auth:sanctum', 'sanctum.auth.json'])->group(fu
     Route::get('/common/get-config-system-app', [CommonController::class, 'getConfigSystemApp']);
     Route::get('/common/get-social-media', [CommonController::class, 'getSocialMedia']);
     Route::get('/common/get-common-question', [CommonController::class, 'getCommonQuestion']);
-    Route::get('/common/change-language', [CommonController::class, 'changeLanguage']);
-    Route::get('/common/ads-statistics', [CommonController::class, 'adsStatistics']);
+    Route::post('/common/change-language', [CommonController::class, 'changeLanguage']);
+    Route::post('/common/ads-statistics', [CommonController::class, 'adsStatistics']);
     
 });

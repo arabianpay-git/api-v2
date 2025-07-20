@@ -85,7 +85,7 @@ class CommonController extends Controller
 
     public function changeLanguage(Request $request): JsonResponse
     {
-        $language = $request->input('language');
+        $language = $request->input('lang');
         if (!in_array($language, ['en', 'ar'])) {
             return $this->returnError('Invalid language code.');
         }
@@ -93,13 +93,21 @@ class CommonController extends Controller
         // Assuming you have a way to set the language in the session or user profile
         session(['app_locale' => $language]);
 
-        return $this->returnSuccess('Language changed successfully.');
+        return $this->returnData('','Language changed successfully.');
     }
 
-    public function adsStatistics(): JsonResponse
+    public function adsStatistics(Request $request): JsonResponse
     {
+        try {
+            $request->validate([
+                'image_id' => 'required|integer|exists:ads_slider,id',
+            ]);
+        } catch (\Exception $e) {
+            return $this->returnError('Validation error: ' . $e->getMessage());
+        }
         // Assuming you have a model for ads statistics
-        $statistics = DB::table('ads_statistics')->get();
+        $statistics = DB::table('ads_slider')
+        ->where('id',$request->image_id)->first();
 
         return $this->returnData($statistics, 'Ads statistics retrieved successfully.');
     }
