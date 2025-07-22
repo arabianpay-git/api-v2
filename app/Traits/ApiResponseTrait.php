@@ -14,9 +14,7 @@ trait ApiResponseTrait
             'status' => true,
             'errNum' => "S200",
             'msg' => $msg,
-            'data' => [
-                $EncryptionService->encrypt($value),
-            ],
+            'data' => $EncryptionService->encrypt($value),
         ]);
     }
 
