@@ -37,7 +37,7 @@ class AuthController extends Controller
         $request->validate(['phone_number' => 'required|string']);
         
         // فك التشفير
-        $phone = $encryptionService->decrypt($request->input('phone_number'));
+        $phone = '966'.$encryptionService->decrypt($request->input('phone_number'));
 
         // Generate 6-digit OTP
         $otpCode = rand(1000, 9999);
