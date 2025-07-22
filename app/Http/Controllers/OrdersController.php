@@ -261,7 +261,6 @@ class OrdersController extends Controller
             'data' => $order
         ]);
     }
-
     
     public function cancelOrder(Request $request,$id)
     {
