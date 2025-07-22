@@ -23,7 +23,7 @@ use Validator;
 class AuthController extends Controller
 {
     use ApiResponseTrait;
-    const DUMMY_PHONE = '966551011969';
+    const DUMMY_PHONE = 966551011969;
     const DUMMY_CODE = '4444';
     const MAX_ATTEMPTS = 5;
     const MAX_SENDS = 3;
