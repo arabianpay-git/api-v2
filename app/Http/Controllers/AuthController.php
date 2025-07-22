@@ -23,7 +23,7 @@ use Validator;
 class AuthController extends Controller
 {
     use ApiResponseTrait;
-    const DUMMY_PHONE = 966551011969;
+    const DUMMY_PHONE = '966551011969';
     const DUMMY_CODE = '4444';
     const MAX_ATTEMPTS = 5;
     const MAX_SENDS = 3;
@@ -87,7 +87,7 @@ class AuthController extends Controller
         $encryptionService = new EncryptionService();
 
         // Decrypt values from the request
-        $phone = $encryptionService->decrypt($request->input('phone_number'));
+        $phone = '966'.$encryptionService->decrypt($request->input('phone_number'));
         $otp = $encryptionService->decrypt($request->input('otp'));
         $notificationToken = $encryptionService->decrypt($request->input('notification_token'));
 
