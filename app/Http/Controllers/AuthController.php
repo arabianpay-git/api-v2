@@ -24,7 +24,7 @@ class AuthController extends Controller
 {
     use ApiResponseTrait;
     const DUMMY_PHONE = '0551011969';
-    const DUMMY_CODE = '444444';
+    const DUMMY_CODE = '4444';
     const MAX_ATTEMPTS = 5;
     const MAX_SENDS = 3;
     const COOLDOWN_SECONDS = 60;
