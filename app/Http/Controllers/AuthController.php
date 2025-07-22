@@ -96,7 +96,7 @@ class AuthController extends Controller
             'phone_number' => $phone,
             'otp' => $otp,
         ], [
-            'phone_number' => 'required|string|regex:/^\d{9,15}$/',
+            'phone_number' => 'required|regex:/^\d{9,15}$/',
             'otp' => 'required|digits:4',
         ])->validate();
 
