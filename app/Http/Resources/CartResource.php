@@ -10,12 +10,12 @@ class CartResource extends JsonResource
     {
         return [
             'id'                => $this->id,
-            'sub_total'         => $this->sub_total,
-            'discount'          => $this->discount,
-            'coupon_discount'   => $this->coupon_discount,
-            'total_discount'    => $this->coupon_discount + $this->discount,
-            'grand_total'       => $this->grand_total,
-            'shipping_cost'     => $this->shipping_cost,
+            'sub_total'         => (double) $this->sub_total,
+            'discount'          => (double) $this->discount,
+            'coupon_discount'   => (double) $this->coupon_discount,
+            'total_discount'    => (double) ($this->coupon_discount + $this->discount),
+            'grand_total'       => (double) $this->grand_total,
+            'shipping_cost'     => (double) $this->shipping_cost,
             'items'             => CartItemsResource::collection($this->items),
         ];
     }

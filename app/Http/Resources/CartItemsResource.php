@@ -26,7 +26,7 @@ class CartItemsResource extends JsonResource
             'discount'        => round($discountItem * $this->quantity, 2),
             'min_qty'         => (int) ($product->min_qty ?? 1),
             'color'           => $this->color ?? '',
-            'currency_symbol' => 'SAR', // Hardcoded currency if no function
+            'currency_symbol' => 'SR', // Hardcoded currency if no function
             'max_qty'         => (int) $product_stock,
             'store'           => $product->user->shop->name ?? '',
         ];
