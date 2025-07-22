@@ -23,7 +23,7 @@ use Validator;
 class AuthController extends Controller
 {
     use ApiResponseTrait;
-    const DUMMY_PHONE = '0551011969';
+    const DUMMY_PHONE = '966551011969';
     const DUMMY_CODE = '4444';
     const MAX_ATTEMPTS = 5;
     const MAX_SENDS = 3;
@@ -100,11 +100,14 @@ class AuthController extends Controller
             'otp' => 'required|digits:4',
         ])->validate();
 
-        
+        $phone055 = $this->denormalizePhoneNumber($phone);
+        $phoneNorm = $this->normalizePhoneNumber($phone);
 
         // Dummy shortcut for development testing
         if (env('APP_ENV') === 'local' && $phone === self::DUMMY_PHONE && $otp === self::DUMMY_CODE) {
-            $user = User::where('phone_number', $encryptionService->db_encrypt($phone))->first();
+            $user = User::where('phone_number', $encryptionService->db_encrypt($phone055))
+            ->orWhere('phone_number', $encryptionService->db_encrypt($phoneNorm))
+            ->first();
             if (! $user) {
                 return response()->json([
                     'status' => false,
@@ -135,7 +138,7 @@ class AuthController extends Controller
         }
 
         // ✅ Example for real OTP verification (production)
-        $otpRecord = Otp::where('phone', $phone)->where('code', $otp)->where('used', 0)->first();
+        $otpRecord = Otp::where('phone', $phoneNorm)->where('code', $otp)->where('used', 0)->first();
         if (! $otpRecord) {
             return $this->returnError('Invalid or expired OTP.', 'E401');
         }
@@ -143,7 +146,7 @@ class AuthController extends Controller
         // Mark OTP as used
         $otpRecord->update(['used' => 1]);
 
-        $user = User::where('phone_number', $phone)->first();
+        $user = User::where('phone_number', $phoneNorm)->first();
         if (! $user) {
             return $this->returnError('User not found.', 'E404');
         }
@@ -609,7 +612,27 @@ class AuthController extends Controller
         ];
     }
 
-    
+    function normalizePhoneNumber(string $phone): string
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone); // remove any non-numeric chars
+
+        if (Str::startsWith($phone, '0')) {
+            $phone = '966' . substr($phone, 1);
+        }
+
+        return $phone;
+    }
+
+    function denormalizePhoneNumber(string $phone): string
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone); // فقط أرقام
+
+        if (Str::startsWith($phone, '966')) {
+            $phone = '0' . substr($phone, 3);
+        }
+
+        return $phone;
+    }
 
 
 }
