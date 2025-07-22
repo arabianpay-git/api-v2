@@ -40,7 +40,7 @@ class AuthController extends Controller
         $phone = $encryptionService->decrypt($request->input('phone_number'));
 
         // Generate 6-digit OTP
-        $otpCode = rand(100000, 999999);
+        $otpCode = rand(1000, 9999);
 
         // Check for existing active OTP for the phone
         $existingOtp = DB::table('otps')
@@ -97,7 +97,7 @@ class AuthController extends Controller
             'otp' => $otp,
         ], [
             'phone_number' => 'required|string|regex:/^\d{9,15}$/',
-            'otp' => 'required|digits:6',
+            'otp' => 'required|digits:4',
         ])->validate();
 
         
