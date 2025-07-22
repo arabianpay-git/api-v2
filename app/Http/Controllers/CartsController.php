@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\EncryptionService;
+use App\Http\Resources\CartResource;
 use App\Models\Address;
 use App\Models\AdsSlider;
 use App\Models\Brand;
@@ -254,7 +255,7 @@ class CartsController extends Controller
     public function getCart()
     {
         $user = auth()->user();
-        $cart = Cart::where('user_id', $user->id)->first();
+        $cart = Cart::with('items.product')->where('user_id', $user->id)->first();
 
         if (!$cart) {
             return response()->json([
@@ -264,26 +265,8 @@ class CartsController extends Controller
                 'data' => [],
             ]);
         }
+        return $this->returnData(new CartResource($cart), 'Cart retrieved successfully.');
 
-        $items = $cart->items()->with('product')->get()->map(function ($item) {
-            return [
-                'id' => $item->id,
-                'product_id' => $item->product_id,
-                'product_name' => $item->product->name ?? null,
-                'thumbnail' => $item->product->thumbnail ?? null,
-                'quantity' => $item->quantity,
-                'unit_price' => $item->unit_price,
-                'total_price' => $item->total_price,
-                'variation' => json_decode($item->variation, true),
-            ];
-        });
-
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => 'Cart retrieved successfully.',
-            'data' => $items,
-        ]);
     }
 
     public function getCartDetails()
