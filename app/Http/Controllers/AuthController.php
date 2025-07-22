@@ -74,7 +74,11 @@ class AuthController extends Controller
         // Log OTP for development/debugging (replace with SMS gateway in production)
         logger("OTP generated for {$phone}: {$otpCode}");
 
-        return response()->json(['message' => __('api.otp_sent')]);
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => __('api.otp_sent'),
+        ]);
     }
 
     
