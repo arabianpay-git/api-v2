@@ -88,82 +88,100 @@ class HomeController extends Controller
     protected function getBestSellerProducts()
     {
         return Product::select([
-            'id',
-            'name',
-            'thumbnail as thumbnail_image',
-            'discount',
-            'discount_type',
-            'unit_price as main_price',
-            'unit_price as stroked_price', // since you don't have separate prices, set both
-            'rating',
-            'current_stock as in_stock'
-        ])
-        ->with(['brand:id,name']) // eager-load brand name
-        ->orderByDesc('number_of_sales') // best sellers = most sales
-        ->where('published', 1) // only published products
-        ->limit(15)
-        ->get()
-        ->map(function ($product) {
-            return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'brand' => optional($product->brand)->name ?? '',
-                'thumbnail_image' => url($product->thumbnail), // convert to full URL
-                'has_discount' => $product->discount > 0,
-                'discount' => (float)$product->discount,
-                'discount_type' => $product->discount_type,
-                'stroked_price' => (float)$product->stroked_price,
-                'main_price' => (float)$product->main_price - (strtolower($product->discount_type) == 'percent'
-                    ? ($product->main_price * $product->discount / 100)
-                    : $product->discount),
-                'rating' => (float)$product->rating,
-                'num_reviews' => 0, // you can calculate reviews count if you have reviews table
-                'is_wholesale' => false, // hardcoded; update if you track wholesale
-                'currency_symbol' => 'SR', // hardcoded; update if dynamic
-                'in_stock' => (bool)($product->in_stock > 0),
-            ];
-        });
+                'id',
+                'name',
+                'thumbnail',
+                'discount',
+                'discount_type',
+                'unit_price as main_price',
+                'unit_price as stroked_price',
+                'rating',
+                'current_stock'
+            ])
+            ->with(['brand:id,name'])
+            ->where('published', 'published')
+            ->orderByDesc('number_of_sales')
+            ->limit(15)
+            ->get()
+            ->map(function ($product) {
+                $mainPrice = (float)$product->main_price;
+                $discount = (float)$product->discount;
+                $discountedPrice = $mainPrice;
+
+                if (strtolower($product->discount_type) === 'percent') {
+                    $discountedPrice = $mainPrice - ($mainPrice * $discount / 100);
+                } elseif (strtolower($product->discount_type) === 'amount') {
+                    $discountedPrice = $mainPrice - $discount;
+                }
+
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'brand' => $product->brand->name ?? 'عام',
+                    'thumbnail_image' => $product->thumbnail??'https://api.arabianpay.net/public/placeholder.jpg',
+                    'has_discount' => $discount > 0,
+                    'discount' => $discount,
+                    'discount_type' => $product->discount_type,
+                    'stroked_price' => $mainPrice,
+                    'main_price' => max($discountedPrice, 0), // prevent negative pricing
+                    'rating' => (float)$product->rating,
+                    'num_reviews' => 0, // can replace if using reviews
+                    'is_wholesale' => false,
+                    'currency_symbol' => 'SR',
+                    'in_stock' => $product->current_stock > 0,
+                ];
+            });
     }
+
 
 
     protected function getFeaturedProducts()
     {
         return Product::select([
-            'id',
-            'name',
-            'thumbnail as thumbnail_image',
-            'discount',
-            'discount_type',
-            'unit_price as main_price',
-            'unit_price as stroked_price', // since there's no separate price fields
-            'rating',
-            'current_stock as in_stock'
-        ])
-        ->with(['brand:id,name']) // eager-load brand relationship
-        ->where('featured', 1)    // use your existing `featured` column
-        ->where('published', 1)   // only show published products
-        ->limit(10)
-        ->get()
-        ->map(function ($product) {
-            return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'brand' => optional($product->brand)->name ?? '',
-                'thumbnail_image' => url($product->thumbnail),
-                'has_discount' => $product->discount > 0,
-                'discount' => (float)$product->discount,
-                'discount_type' => $product->discount_type,
-                'stroked_price' => (float)$product->stroked_price,
-                'main_price' => (float)$product->stroked_price - (strtolower($product->discount_type) == 'percent'
-                    ? ($product->stroked_price * $product->discount / 100)
-                    : $product->discount),
-                'rating' => (float)$product->rating,
-                'num_reviews' => 0, // update this if you track reviews
-                'is_wholesale' => false, // update if you have wholesale logic
-                'currency_symbol' => 'SR', // hardcoded currency
-                'in_stock' => (bool)($product->in_stock > 0),
-            ];
-        });
+                'id',
+                'name',
+                'thumbnail',
+                'discount',
+                'discount_type',
+                'unit_price as main_price',
+                'unit_price as stroked_price',
+                'rating',
+                'current_stock'
+            ])
+            ->with(['brand:id,name'])
+            ->where('published', 'published')
+            ->where('featured', 1)
+            ->orderByDesc('number_of_sales')
+            ->limit(15)
+            ->get()
+            ->map(function ($product) {
+                $mainPrice = (float)$product->main_price;
+                $discount = (float)$product->discount;
+                $discountedPrice = $mainPrice;
+
+                if (strtolower($product->discount_type) === 'percent') {
+                    $discountedPrice = $mainPrice - ($mainPrice * $discount / 100);
+                } elseif (strtolower($product->discount_type) === 'amount') {
+                    $discountedPrice = $mainPrice - $discount;
+                }
+
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'brand' => $product->brand->name ?? 'عام',
+                    'thumbnail_image' => $product->thumbnail??'https://api.arabianpay.net/public/placeholder.jpg',
+                    'has_discount' => $discount > 0,
+                    'discount' => $discount,
+                    'discount_type' => $product->discount_type,
+                    'stroked_price' => $mainPrice,
+                    'main_price' => max($discountedPrice, 0), // prevent negative pricing
+                    'rating' => (float)$product->rating,
+                    'num_reviews' => 0, // can replace if using reviews
+                    'is_wholesale' => false,
+                    'currency_symbol' => 'SR',
+                    'in_stock' => $product->current_stock > 0,
+                ];
+            });
     }
 
 
@@ -183,8 +201,8 @@ class HomeController extends Controller
                 'slug' => \Str::slug($shop->name) . '-' . $shop->id, // Dynamic slug
                 'user_id' => $shop->user_id,
                 'name' => $shop->name,
-                'logo' => url($shop->logo),
-                'cover' => url('/assets/img/placeholder.jpg'), // Placeholder cover image
+                'logo' => $shop->logo??'https://api.arabianpay.net/public/placeholder.jpg',
+                'cover' => 'https://api.arabianpay.net/public/placeholder.jpg', // Placeholder cover image
                 'rating' => 0, // Since your table has no rating
             ];
         });
@@ -193,27 +211,31 @@ class HomeController extends Controller
 
     protected function getSliders()
     {
+
         return AdsSlider::select('image', 'id')->get()
-        ->map(function ($slider) {
-            return [
-                'image' => $slider->image,
-                'image_id' => $slider->id, // Assuming 'id' is the unique identifier
-                'target' => '',
-            ];
-        });
+            ->map(function ($slider) {
+                return [
+                    'image' => $slider->image??'https://api.arabianpay.net/public/placeholder.jpg', // get URL by ID
+                    'image_id' => (string) $slider->id,
+                    'target' => '', // No target data in table
+                ];
+            });
     }
+    
 
     protected function getBanner1()
     {
-        return AdsSlider::select('image', 'id')->get()
-        ->map(function ($slider) {
-            return [
-                'image' => $slider->image,
-                'image_id' => $slider->id, // Assuming 'id' is the unique identifier
-                'target' => '',
-            ];
-        });
+        return AdsSlider::select('image', 'id')
+            ->get()
+            ->map(function ($slider) {
+                return [
+                    'image' => $slider->image??'https://api.arabianpay.net/public/placeholder.jpg',  // convert image ID to URL
+                    'image_id' => (string) $slider->id,
+                    'target' => '', // no target info in current schema
+                ];
+            });
     }
+
 
     public function process(Request $request)
     {
@@ -238,5 +260,15 @@ class HomeController extends Controller
             'operation' => $request->operation,
             'result' => $result,
         ]);
+    }
+
+    protected function resolveTargetType($type)
+    {
+        return match(class_basename($type)) {
+            'Shop' => 'shop',
+            'Brand' => 'brand',
+            'Category' => 'category',
+            default => 'unknown',
+        };
     }
 }
