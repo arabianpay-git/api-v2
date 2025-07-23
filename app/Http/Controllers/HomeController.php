@@ -42,16 +42,48 @@ class HomeController extends Controller
 
     protected function getTopBrands()
     {
-        // Replace with real query logic (limit, order, etc.)
-        return Brand::select('id', 'name', 'logo')->limit(25)->get();
+        return Brand::select('id', 'logo')
+        ->with(['translations' => function ($query) {
+            $query->where('locale', 'ar'); // or the current locale
+        }])
+        ->limit(25)
+        ->get()
+        ->map(function ($brand) {
+            return [
+                'id' => $brand->id,
+                'name' => $brand->translations[0]->name ?? '',
+                'logo' => $brand->logo,
+            ];
+        });
     }
 
     protected function getFeaturedCategories()
     {
         return Category::with(['children' => function ($query) {
-            $query->select('id', 'name', 'icon', 'parent_id');
-        }])->where('parent_id', 0)->select('id', 'name', 'icon', 'parent_id')->get();
+            $query->select('id', 'name', 'icon as image', 'parent_id');
+        }])
+        ->where('parent_id', null)
+        ->select('id', 'name', 'icon as image', 'parent_id')
+        ->get()
+        ->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'image' => $category->image??'https://api.arabianpay.net/public/placeholder.jpg',
+                'parent_id' => $category->parent_id,
+                'children' => $category->children->map(function ($child) {
+                    return [
+                        'id' => $child->id,
+                        'name' => $child->name,
+                        'image' => $child->image??'https://api.arabianpay.net/public/placeholder.jpg',
+                        'parent_id' => $child->parent_id,
+                        'children' => [], // Optional: nest deeper if needed
+                    ];
+                })->toArray(),
+            ];
+        });
     }
+
 
     protected function getBestSellerProducts()
     {
