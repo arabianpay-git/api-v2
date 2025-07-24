@@ -105,7 +105,7 @@ class UsersController extends Controller
             ];
         });
 
-        return response()->json([
+        $data = [
             'total_order' => $totalOrder,
             'total_due' => ['amount' => number_format($totalDue, 2), 'symbol' => 'SR'],
             'total_paid' => ['amount' => number_format($totalPaid, 2), 'symbol' => 'SR'],
@@ -115,7 +115,9 @@ class UsersController extends Controller
             'top_deal_slider' => $topDealSlider,
             'ad_banner_one' => $adBannerOne,
             'top_store' => $topStore,
-        ]);
+        ];
+
+        return $this->returnData($data);
     }
 
 
@@ -123,7 +125,7 @@ class UsersController extends Controller
     {
         $user = Auth::user();
 
-        return response()->json([
+        $data = [
             'id' => $user->id,
             'name' => $user->first_name . ' ' . $user->last_name,
             'business_name' => $user->business_name,
@@ -137,7 +139,9 @@ class UsersController extends Controller
                     "name"=> "Gold Package",
                     "logo"=> "http://api.arabianpay.co/public/assets/img/packages/02.png"
                 ] // or fetch user's subscription if applicable
-        ]);
+        ];
+
+        return $this->returnData($data);
     }
 
     public function getPayments(Request $request)
@@ -186,12 +190,13 @@ class UsersController extends Controller
             })
             ->values();
 
-        return response()->json($payments);
+            return $this->returnData($payments);
+
     }
 
     public function getSpent(Request $request)
     {
-        return response()->json([
+        $data = [
             'status' => true,
             'errNum' => 'S200',
             'msg' => 'Spending stats fetched successfully.',
@@ -249,7 +254,9 @@ class UsersController extends Controller
                     ]
                 ]
             ]
-        ]);
+        ];
+
+        return $this->returnData($data);
 
     }
     public function getCards(Request $request)
@@ -258,7 +265,7 @@ class UsersController extends Controller
         $userId = $request->user()->id;
         $cards = []; // Fetch user's cards from the database
 
-        return response()->json([
+        $data =[
                                 [
                                     "id"=> 6,
                                     "type"=> "Credit",
@@ -275,7 +282,9 @@ class UsersController extends Controller
                                     "token"=> "394154BC67A3EF34C7B093FD618778B8",
                                     "is_default"=> false
                                 ]
-                            ]);
+                            ];
+
+        return $this->returnData($data);
 
     }
 
@@ -288,7 +297,7 @@ class UsersController extends Controller
             return response()->json(['error' => 'Payment not found'], 404);
         }
 
-        return response()->json($payment);
+        return $this->returnData($payment);
     }
 
     public function updateProfile(Request $request)
