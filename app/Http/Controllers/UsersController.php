@@ -12,6 +12,7 @@ use App\Models\SchedulePayment;
 use App\Models\Shop;
 use App\Models\ShopSetting;
 use App\Models\Slider;
+use App\Models\Transaction;
 use App\Traits\ApiResponseTrait;
 use Auth;
 use Carbon\Carbon;
@@ -28,29 +29,81 @@ class UsersController extends Controller
         $userId = $request->user()->id;
 
         $totalOrder = DB::table('orders')->where('user_id', $userId)->count();
+
         $schedulePayments = SchedulePayment::where('due_date', '<=', Carbon::now())
             ->where('payment_status', '!=', 'paid')
             ->where('user_id', $userId)
             ->get();
-        $totalDue = $schedulePayments->sum('instalment_amount');   // Replace this with your own logic
-        $totalPaid = SchedulePayment::where('payment_status','paid')->sum('instalment_amount');   // Replace this with your own logic
-        $limit = CustomerCreditLimit::where('user_id',$userId)->sum('limit_arabianpay_after');     // Replace this with your own logic
 
-        $paymentDueSoon = [
-            [
-                "transaction_id" => "xxx-uuid",
-                "reference_id" => "AP-10001",
-                "name_shop" => "Sample Shop",
-                "schedule_payments" => [
-                    $schedulePayments
+        $totalDue = $schedulePayments->sum('instalment_amount');
+        $totalPaid = SchedulePayment::where('user_id', $userId)->where('payment_status', 'paid')->sum('instalment_amount');
+        $limit = CustomerCreditLimit::where('user_id', $userId)->sum('limit_arabianpay_after');
+
+        // Payments due soon formatted
+        $paymentDueSoon = Transaction::where('user_id', $userId)
+            ->with(['schedulePayments' => function ($q) {
+                $q->orderBy('due_date');
+            }, 'store'])
+            ->get()
+            ->map(function ($tx) {
+                return [
+                    "transaction_id" => $tx->id,
+                    "reference_id" => $tx->reference_id,
+                    "name_shop" => $tx->store->name ?? '',
+                    "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
+                        return [
+                            "payment_id" => $sp->id,
+                            "reference_id" => $sp->reference_id,
+                            "name_shop" => "",
+                            "installment_number" => $sp->installment_number,
+                            "current_installment" => $sp->is_current_installment,
+                            "date" => Carbon::parse($sp->due_date)->format('M d, Y'),
+                            "amount" => [
+                                "amount" => number_format($sp->instalment_amount, 2),
+                                "symbol" => "SR"
+                            ],
+                            "late_fee" => [
+                                "amount" => number_format($sp->late_fee, 2),
+                                "symbol" => "SR"
+                            ],
+                            "status" => [
+                                "name" => ucfirst($sp->payment_status),
+                                "slug" => $sp->payment_status
+                            ]
+                        ];
+                    })
+                ];
+            });
+
+        // Load sliders, banners, top store, etc.
+        $dashboardSlider = AdsSlider::take(10)->get()->map(function ($item) {
+            return [
+                'image' => $item->image?? 'https://api.arabianpay.com/uploads/sliders/default_cover.png',
+                'image_id' => (string) $item->id,
+                'target' => [
+                    'type' => 'null',
+                    'id' => 0,
+                    'name' => 'NuN',
+                    'image' => '',
+                    'rating' => 0
                 ]
-            ]
-        ];
+            ];
+        });
 
-        $dashboardSlider = []; // Collect your sliders from DB
-        $topDealSlider = [];   // Collect top deals from DB
-        $adBannerOne = [];     // Collect banners from DB
-        $topStore = [];        // Collect top stores from DB
+        $topDealSlider = $dashboardSlider; // أو اجلبها من جدول آخر إن أردت
+
+        $adBannerOne = $dashboardSlider->take(1); // أو خصصها من جدول آخر أو شرط معين
+        $topStore = ShopSetting::get()->map(function ($shop) {
+            return [
+                "id" => $shop->id,
+                "slug" => $shop->slug,
+                "user_id" => $shop->user_id,
+                "name" => $shop->name,
+                "logo" => $shop->logo??'https://api.arabianpay.com/uploads/shops/default_cover.png',
+                "cover" => $shop->cover??'https://api.arabianpay.com/uploads/shops/default_cover.png',
+                "rating" => $shop->rating,
+            ];
+        });
 
         return response()->json([
             'total_order' => $totalOrder,
@@ -64,6 +117,7 @@ class UsersController extends Controller
             'top_store' => $topStore,
         ]);
     }
+
 
     public function getInfo(Request $request)
     {
