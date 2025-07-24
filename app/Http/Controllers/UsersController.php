@@ -132,7 +132,11 @@ class UsersController extends Controller
             'phone' => $user->phone_number,
             'token' => null, // because you're using Sanctum tokens separately
             'complete' => 1, // or check from user profile completeness if needed
-            'package' => null, // or fetch user's subscription if applicable
+            "package"=> [
+                    "slug"=> "gold",
+                    "name"=> "Gold Package",
+                    "logo"=> "http://api.arabianpay.co/public/assets/img/packages/02.png"
+                ] // or fetch user's subscription if applicable
         ]);
     }
 
