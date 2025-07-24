@@ -130,7 +130,7 @@ class UsersController extends Controller
             'email' => $user->email,
             'id_number' => $user->iqama,    // assuming iqama is your id_number
             'phone' => $user->phone_number,
-            'token' => null, // because you're using Sanctum tokens separately
+            'token' => $request->bearerToken(), 
             'complete' => 1, // or check from user profile completeness if needed
             "package"=> [
                     "slug"=> "gold",
