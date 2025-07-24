@@ -85,18 +85,140 @@ class UsersController extends Controller
     public function getPayments(Request $request)
     {
         $userId = $request->user()->id;
-        $payments = SchedulePayment::where('user_id', $userId)->get();
+
+        // Load payments with their transaction and merchant/shop relationship
+        $payments = SchedulePayment::with(['transaction', 'transaction.shop'])
+            ->where('user_id', $userId)
+            ->get()
+            ->groupBy('transaction_id')
+            ->map(function ($groupedPayments, $transactionId) {
+                $transaction = $groupedPayments->first()->transaction;
+
+                return [
+                    'transaction_id' => $transactionId,
+                    'reference_id' => $transaction->reference_id ?? '',
+                    'name_shop' => $transaction->shop->name ?? '',
+
+                    'schedule_payments' => $groupedPayments->map(function ($payment) {
+                        return [
+                            'payment_id' => $payment->id,
+                            'reference_id' => $payment->reference_id,
+                            'name_shop' => '', // optional – can omit or fill
+                            'installment_number' => $payment->installment_number,
+                            'current_installment' => $payment->start_date && $payment->due_date
+                                                    ? now()->between($payment->start_date, $payment->due_date)
+                                                    : false,
+                            'date' => \Carbon\Carbon::parse($payment->due_date)->translatedFormat('M d, Y'),
+
+                            'amount' => [
+                                'amount' => number_format($payment->amount, 2),
+                                'symbol' => 'SR',
+                            ],
+                            'late_fee' => [
+                                'amount' => number_format($payment->late_fee ?? 0, 2),
+                                'symbol' => 'SR',
+                            ],
+                            'status' => [
+                                'name' => $this->getStatusName($payment->status), // translate status
+                                'slug' => $payment->status,
+                            ],
+                        ];
+                    })->values(),
+                ];
+            })
+            ->values();
 
         return response()->json($payments);
     }
 
+    public function getSpent(Request $request)
+    {
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => 'Spending stats fetched successfully.',
+            'data' => [
+                'credit_limit' => [
+                    'amount' => 5000,
+                    'currency' => 'SAR',
+                ],
+                'total_spent' => [
+                    'amount' => 1500,
+                    'currency' => 'SAR',
+                ],
+                'total_cate_purchases' => [
+                    [
+                        'category_id' => 1,
+                        'category_name' => 'Electronics',
+                        'amount' => 800,
+                        'currency' => 'SAR',
+                    ],
+                    [
+                        'category_id' => 2,
+                        'category_name' => 'Clothing',
+                        'amount' => 700,
+                        'currency' => 'SAR',
+                    ],
+                ],
+                'monthly_spending_stats' => [
+                    [
+                        'date' => '2025-06',
+                        'spent' => [
+                            'amount' => 1000,
+                            'currency' => 'SAR',
+                        ]
+                    ],
+                    [
+                        'date' => '2025-07',
+                        'spent' => [
+                            'amount' => 500,
+                            'currency' => 'SAR',
+                        ]
+                    ]
+                ],
+                'top_store' => [
+                    [
+                        'store_id' => 5,
+                        'store_name' => 'Extra',
+                        'amount_spent' => 600,
+                        'currency' => 'SAR',
+                    ],
+                    [
+                        'store_id' => 9,
+                        'store_name' => 'Jarir',
+                        'amount_spent' => 400,
+                        'currency' => 'SAR',
+                    ]
+                ]
+            ]
+        ]);
+
+    }
     public function getCards(Request $request)
     {
         // Assuming you have a method to fetch user's cards
         $userId = $request->user()->id;
         $cards = []; // Fetch user's cards from the database
 
-        return response()->json($cards);
+        return response()->json([
+                                [
+                                    "id"=> 6,
+                                    "type"=> "Credit",
+                                    "scheme"=> "Visa",
+                                    "number"=> "4000 00## #### 0002",
+                                    "token"=> "2C4654BC67A3E935C6B691FD6C8374BE",
+                                    "is_default"=> false
+                                ],
+                                [
+                                    "id"=> 7,
+                                    "type"=> "Debit",
+                                    "scheme"=> "Visa",
+                                    "number"=> "4575 53## #### 0459",
+                                    "token"=> "394154BC67A3EF34C7B093FD618778B8",
+                                    "is_default"=> false
+                                ]
+                            ]);
+
     }
 
     public function getPaymentDetails(Request $request, $uuid)
@@ -126,6 +248,16 @@ class UsersController extends Controller
             'errNum' => 'S200',
             'msg' => 'Email updated successfully.',
         ]);
+    }
+
+    protected function getStatusName($slug)
+    {
+        return match ($slug) {
+            'paid' => 'مدفوع',
+            'outstanding' => 'مستحقة',
+            'pending' => 'قيد الانتظار',
+            default => 'غير معروف',
+        };
     }
 
 }

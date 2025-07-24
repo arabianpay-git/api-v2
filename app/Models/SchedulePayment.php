@@ -112,4 +112,9 @@ class SchedulePayment extends Model
 
         return ['months' => $labels, 'series' => $series, 'rate' => $rate];
     }
+
+    public function transaction()
+    {
+        return $this->belongsTo(TransactionOrder::class, 'transaction_id');
+    }
 }
