@@ -1014,7 +1014,7 @@ class HomeController extends Controller
             return [
                 'id' => $brand->id,
                 'name' => $brand->translations[0]->name ?? '',
-                'logo' => $brand->logo,
+                'logo' => 'https://core.arabianpay.net'.$brand->logo,
             ];
         });
     }
@@ -1131,7 +1131,7 @@ class HomeController extends Controller
                     'id' => $product->id,
                     'name' => $product->name,
                     'brand' => $product->brand->name ?? 'عام',
-                    'thumbnail_image' => $product->thumbnail??'https://api.arabianpay.net/public/placeholder.jpg',
+                    'thumbnail_image' => !empty($product->thumbnail)?'https://partners.arabianpay.net'.$product->thumbnail:'https://api.arabianpay.net/public/placeholder.jpg',
                     'has_discount' => $discount > 0,
                     'discount' => $discount,
                     'discount_type' => $product->discount_type,
