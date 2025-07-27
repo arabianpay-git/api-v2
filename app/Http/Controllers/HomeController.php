@@ -1213,16 +1213,11 @@ class HomeController extends Controller
         if ($request->operation === 'encrypt') {
             $result = $encryptionService->encrypt($request->text);
         } else {
-            $result = $encryptionService->db_decrypt($request->text);
+            $result = $encryptionService->decrypt($request->text);
         }
 
         return($result); // Debugging output, remove in production
 
-        return view('encryption', [
-            'input' => $request->text,
-            'operation' => $request->operation,
-            'result' => $result,
-        ]);
     }
 
     protected function resolveTargetType($type)
