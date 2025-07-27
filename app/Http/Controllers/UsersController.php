@@ -93,9 +93,11 @@ class UsersController extends Controller
         $topDealSlider = $dashboardSlider; // أو اجلبها من جدول آخر إن أردت
 
         $adBannerOne = $dashboardSlider->take(1); // أو خصصها من جدول آخر أو شرط معين
-        $topStore = ShopSetting::limit(20)
-        ->where('name','!=',null)
+        $topStore = ShopSetting::
+        where('name','!=',null)
         ->where('name','!=',"")
+        ->limit(20)
+        ->get()
         ->map(function ($shop) {
             return [
                 "id" => $shop->id,
