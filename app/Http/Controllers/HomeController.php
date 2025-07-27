@@ -1165,7 +1165,7 @@ class HomeController extends Controller
                 'slug' => Str::slug($shop->name) . '-' . $shop->id, // Dynamic slug
                 'user_id' => $shop->user_id,
                 'name' => $shop->name,
-                'logo' => $shop->logo??'https://api.arabianpay.net/public/placeholder.jpg',
+                'logo' => 'https://partners.arabianpay.net'.$shop->logo?$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
                 'cover' => 'https://api.arabianpay.net/public/placeholder.jpg', // Placeholder cover image
                 'rating' => 0, // Since your table has no rating
             ];
