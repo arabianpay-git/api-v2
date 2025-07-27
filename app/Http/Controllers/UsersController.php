@@ -93,13 +93,16 @@ class UsersController extends Controller
         $topDealSlider = $dashboardSlider; // أو اجلبها من جدول آخر إن أردت
 
         $adBannerOne = $dashboardSlider->take(1); // أو خصصها من جدول آخر أو شرط معين
-        $topStore = ShopSetting::get()->map(function ($shop) {
+        $topStore = ShopSetting::limit(20)
+        ->where('name','!=',null)
+        ->where('name','!=',"")
+        ->map(function ($shop) {
             return [
                 "id" => $shop->id,
                 "slug" => $shop->slug,
                 "user_id" => $shop->user_id,
                 "name" => $shop->name,
-                "logo" => $shop->logo??'https://api.arabianpay.com/uploads/shops/default_cover.png',
+                'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
                 "cover" => $shop->cover??'https://api.arabianpay.com/uploads/shops/default_cover.png',
                 "rating" => $shop->rating,
             ];
