@@ -1009,6 +1009,7 @@ class HomeController extends Controller
             $query->where('locale', 'ar'); // or the current locale
         }])
         ->limit(20)
+        ->orderBy('id','DESC')
         ->get()
         ->map(function ($brand) {
             return [
