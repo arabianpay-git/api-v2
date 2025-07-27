@@ -65,7 +65,7 @@ class CommonController extends Controller
     {
         // Assuming you have a model for system configurations
         //$config = DB::table('system_configurations')->first();
-        $config = null; // Replace with actual logic to fetch system configuration
+        $config =  [['title'=>'test','description'=>'test test']]; // Replace with actual logic to fetch system configuration
         return $this->returnData($config, 'System configuration retrieved successfully.');
     }
 
