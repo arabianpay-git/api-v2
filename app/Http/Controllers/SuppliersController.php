@@ -27,7 +27,7 @@ class SuppliersController extends Controller
                 'slug' => str()->slug($shop->name) . '-' . $shop->id,
                 'user_id' => $shop->user_id,
                 'name' => $shop->name ?? 'Unknown',
-                'logo' => $shop->logo ? url($shop->logo) : asset('assets/img/placeholder.jpg'),
+                'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
                 'cover' => asset('assets/img/placeholder.jpg'),
                 'rating' => 0, // You can replace with actual rating field if available
             ];
@@ -45,7 +45,7 @@ class SuppliersController extends Controller
         $data = [
             'id' => $shop->id,
             'name' => $shop->name ?? 'Unknown',
-            'logo' => $shop->logo ? url($shop->logo) : asset('assets/img/placeholder.jpg'),
+            'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
             'return_policy' => '', // Replace with actual data if exists
             'exchange_policy' => '', // Replace with actual data if exists
             'cancel_policy' => '', // Replace with actual data if exists
@@ -77,7 +77,7 @@ class SuppliersController extends Controller
                 'id' => $product->id,
                 'name' => $product->name,
                 'brand' => $product->brand ? $product->brand->name : '',
-                'thumbnail_image' => $product->thumbnail_image ? url($product->thumbnail_image) : asset('assets/img/placeholder.jpg'),
+                'thumbnail_image' => $product->thumbnail ? 'https://partners.arabianpay.net'.$product->thumbnail : 'https://api.arabianpay.net/public/placeholder.jpg',
                 'has_discount' => (bool) ($product->discount > 0),
                 'discount' => (float) $product->discount,
                 'discount_type' => $product->discount_type ?? 'amount',
