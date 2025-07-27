@@ -1158,7 +1158,7 @@ class HomeController extends Controller
         ])
         ->where('name','!=',null)
         ->where('name','!=',"")
-        ->limit(20) // No rating field, so limit only
+        ->limit(10) // No rating field, so limit only
         ->get()
         ->map(function ($shop) {
             return [
