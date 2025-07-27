@@ -79,8 +79,8 @@ class CommonController extends Controller
     public function getCommonQuestion(): JsonResponse
     {
         //$questions = DB::table('common_questions')->get();
-        $questions = [];
-        return $this->returnData([], 'Common questions retrieved successfully.');
+        $questions = ['title'=>'test','description'=>'test test'];
+        return $this->returnData($questions, 'Common questions retrieved successfully.');
     }
 
     public function changeLanguage(Request $request): JsonResponse
