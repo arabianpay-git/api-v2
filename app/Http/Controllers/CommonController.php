@@ -65,7 +65,7 @@ class CommonController extends Controller
     {
         // Assuming you have a model for system configurations
         //$config = DB::table('system_configurations')->first();
-        $config =  [['title'=>'test','description'=>'test test']]; // Replace with actual logic to fetch system configuration
+        $config =  [ "maintenance_mode"=> false, "app_version"=> [ "ios"=> [ "version"=> "1.1.3", "mandatory"=> true, "link"=> "https://apps.apple.com/sa/app/arabianpay/id6499426744" ], "android"=> [ "version"=> "1.0.1", "mandatory"=> true, "link"=> "https://play.google.com/store/apps/details?id=com.kayanintelligence.arabianpay" ] ] ]; // Replace with actual logic to fetch system configuration
         return $this->returnData($config, 'System configuration retrieved successfully.');
     }
 
