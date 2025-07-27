@@ -1029,16 +1029,32 @@ class HomeController extends Controller
         ->select('id', 'name', 'icon as image', 'parent_id')
         ->get()
         ->map(function ($category) {
+          if(!empty($category->image)){
+            if (Str::startsWith($category->image, '/storage')) {
+              $img = 'https://core.arabianpay.net'.$category->image;
+            }else{
+              $img = 'https://core.arabianpay.net'.$category->image;
+            }
+          }else{
+            $img = 'https://api.arabianpay.net/public/placeholder.jpg';
+          }
+
+          
             return [
                 'id' => $category->id,
                 'name' => $category->name,
-                'image' => $category->image??'https://api.arabianpay.net/public/placeholder.jpg',
+                'image' => $img,
                 'parent_id' => $category->parent_id,
                 'children' => $category->children->map(function ($child) {
+                    if(!empty($child->image)){
+                      $ch_img = 'https://core.arabianpay.net'.$child->image;
+                    }else{
+                      $ch_img = 'https://api.arabianpay.net/public/placeholder.jpg';
+                    }
                     return [
                         'id' => $child->id,
                         'name' => $child->name,
-                        'image' => $child->image??'https://api.arabianpay.net/public/placeholder.jpg',
+                        'image' => $ch_img,
                         'parent_id' => $child->parent_id,
                         'children' => [], // Optional: nest deeper if needed
                     ];
