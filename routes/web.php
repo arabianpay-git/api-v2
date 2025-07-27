@@ -13,6 +13,7 @@ Route::get('/enc', function () {
 });
 
 Route::post('/encryption-tool', [HomeController::class, 'process'])->name('encryption.tool.process');
+Route::get('/upload-old', [HomeController::class, 'upload'])->name('upload.old');
 
 
 Route::get('/encrypt/{text}', function ($text, EncryptionService $encryptionService) {

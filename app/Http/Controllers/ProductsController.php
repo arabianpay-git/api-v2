@@ -43,7 +43,7 @@ class ProductsController extends Controller
                 'id' => $product->id,
                 'name' => $product->name,
                 'brand' => optional($product->brand)->name ?? 'Generic',
-                'thumbnail_image' => $product->thumbnail,
+                'thumbnail_image' => $product->thumbnail??'https://api.arabianpay.net/public/placeholder.jpg',
                 'has_discount' => $product->discount > 0,
                 'discount' => (float)$product->discount,
                 'discount_type' => $product->discount_type,
