@@ -19,7 +19,8 @@ class SuppliersController extends Controller
     use ApiResponseTrait;
    public function getSuppliers()
     {
-        $shops = ShopSetting::orderBy('id', 'asc')->get();
+        $shops = ShopSetting::orderBy('id', 'asc')->where('name','!=','')
+        ->where('name','!=',null)->get();
 
         $data = $shops->map(function ($shop) {
             return [
