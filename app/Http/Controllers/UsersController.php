@@ -105,7 +105,7 @@ class UsersController extends Controller
                 "user_id" => $shop->user_id,
                 "name" => $shop->name,
                 'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
-                "cover" => $shop->cover?'https://partners.arabianpay.net'.$shop->cover:'https://api.arabianpay.net/public/placeholder.jpg',
+                "cover" => $shop->banner?$shop->banner:'https://api.arabianpay.net/public/placeholder.jpg',
                 "rating" => $shop->rating,
             ];
         });
