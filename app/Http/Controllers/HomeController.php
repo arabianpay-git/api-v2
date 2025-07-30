@@ -1078,7 +1078,7 @@ class HomeController extends Controller
                 'current_stock'
             ])
             ->with(['brand:id,name'])
-            ->where('thumbnail_image','!=',null)
+            ->where('thumbnail','!=',null)
             ->where('published', 'published')
             ->orderByDesc('number_of_sales')
             ->limit(15)
