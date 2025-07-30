@@ -26,7 +26,7 @@ class BrandsController extends Controller
         }
 
         $brands = $query
-            ->orderBy('id')
+            ->orderBy('id','DESC')
             ->paginate(20); // 20 brands per page
 
         $data = $brands->map(function ($brand) {
