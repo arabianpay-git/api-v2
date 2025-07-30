@@ -1078,6 +1078,7 @@ class HomeController extends Controller
                 'current_stock'
             ])
             ->with(['brand:id,name'])
+            ->where('thumbnail_image','!=',null)
             ->where('published', 'published')
             ->orderByDesc('number_of_sales')
             ->limit(15)
@@ -1097,7 +1098,7 @@ class HomeController extends Controller
                     'id' => $product->id,
                     'name' => $product->name,
                     'brand' => $product->brand->name ?? 'عام',
-                    'thumbnail_image' => $product->thumbnail??'https://api.arabianpay.net/public/placeholder.jpg',
+                    'thumbnail_image' => !empty($product->thumbnail)?'https://partners.arabianpay.net'.$product->thumbnail:'https://api.arabianpay.net/public/placeholder.jpg',
                     'has_discount' => $discount > 0,
                     'discount' => $discount,
                     'discount_type' => $product->discount_type,
