@@ -79,7 +79,7 @@ class UsersController extends Controller
         $dashboardSlider = AdsSlider::take(10)->get()->map(function ($item) {
             return [
                 'image' => $item->image?'https://core.arabianpay.com'.$item->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
-                'image_id' => (string) $item->id,
+                'image_id' => "185507",
                 'target' => [
                     'type' => 'brand',
                     'id' => $item->id,
