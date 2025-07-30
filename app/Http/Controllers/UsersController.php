@@ -133,9 +133,9 @@ class UsersController extends Controller
         $data = [
             'id' => $user->id,
             'name' => $user->first_name . ' ' . $user->last_name,
-            'business_name' => $user->business_name,
+            'business_name' => $user->business_name??'-',
             'email' => $user->email,
-            'id_number' => $user->iqama,    // assuming iqama is your id_number
+            'id_number' => $user->iqama??'-',    // assuming iqama is your id_number
             'phone' => $user->phone_number,
             'token' => $request->bearerToken(), 
             'complete' => 1, // or check from user profile completeness if needed
