@@ -76,7 +76,7 @@ class UsersController extends Controller
             });
 
         // Load sliders, banners, top store, etc.
-        $dashboardSlider = AdsSlider::take(2)->get()->map(function ($item) {
+        $dashboardSlider = AdsSlider::take(10)->get()->map(function ($item) {
             return [
                 'image' => $item->image?'https://core.arabianpay.com'.$item->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
                 'image_id' => "185507",
@@ -84,7 +84,7 @@ class UsersController extends Controller
                     'type' => 'brand',
                     'id' => $item->id,
                     'name' => 'Generic',
-                    'image' => '',
+                    'image' => $item->image?'https://core.arabianpay.com'.$item->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
                     'rating' => 0
                 ]
             ];
