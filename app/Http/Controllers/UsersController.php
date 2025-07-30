@@ -78,7 +78,7 @@ class UsersController extends Controller
         // Load sliders, banners, top store, etc.
         $dashboardSlider = AdsSlider::take(10)->get()->map(function ($item) {
             return [
-                'image' => $item->image?? 'https://api.arabianpay.com/uploads/sliders/default_cover.png',
+                'image' => $item->image?'https://core.arabianpay.com'.$item->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
                 'image_id' => (string) $item->id,
                 'target' => [
                     'type' => 'null',
@@ -133,9 +133,9 @@ class UsersController extends Controller
         $data = [
             'id' => $user->id,
             'name' => $user->first_name . ' ' . $user->last_name,
-            'business_name' => $user->business_name,
+            'business_name' => $user->business_name??'-',
             'email' => $user->email,
-            'id_number' => $user->iqama,    // assuming iqama is your id_number
+            'id_number' => $user->iqama??'-',    // assuming iqama is your id_number
             'phone' => $user->phone_number,
             'token' => $request->bearerToken(), 
             'complete' => 1, // or check from user profile completeness if needed
