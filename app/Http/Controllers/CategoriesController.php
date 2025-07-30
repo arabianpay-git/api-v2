@@ -33,15 +33,16 @@ class CategoriesController extends Controller
 
     private function formatCategory(Category $category)
     {
-        if(!empty($category->image)){
-            if (Str::startsWith($category->image, '/storage')) {
-                $img = 'https://core.arabianpay.net'.$category->image;
+        if(!empty($category->icon)){
+            if (Str::startsWith($category->icon, '/storage')) {
+                $img = 'https://core.arabianpay.net'.$category->icon;
             }else{
-                $img = 'https://core.arabianpay.net'.$category->image;
+                $img = 'https://core.arabianpay.net'.$category->icon;
             }
-            }else{
+        }else{
             $img = 'https://api.arabianpay.net/public/placeholder.jpg';
         }
+        
         return [
             'id' => $category->id,
             'name' => $category->name,
