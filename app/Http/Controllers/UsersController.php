@@ -82,7 +82,7 @@ class UsersController extends Controller
                 'image_id' => "185507",
                 'target' => [
                     'type' => 'brand',
-                    'id' => $item->id,
+                    'id' => 1,
                     'name' => 'Generic',
                     'image' => $item->image?'https://core.arabianpay.com'.$item->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
                     'rating' => 0
