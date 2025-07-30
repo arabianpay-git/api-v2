@@ -1130,6 +1130,7 @@ class HomeController extends Controller
             ->with(['brand:id,name'])
             ->where('published', 'published')
             ->where('featured', 1)
+            ->where('thumbnail','!=',null)
             ->orderByDesc('number_of_sales')
             ->limit(15)
             ->get()
