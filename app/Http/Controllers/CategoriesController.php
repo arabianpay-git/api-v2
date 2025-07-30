@@ -12,6 +12,7 @@ use App\Models\Slider;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Str;
 
 class CategoriesController extends Controller
 {
@@ -32,10 +33,19 @@ class CategoriesController extends Controller
 
     private function formatCategory(Category $category)
     {
+        if(!empty($category->image)){
+            if (Str::startsWith($category->image, '/storage')) {
+                $img = 'https://core.arabianpay.net'.$category->image;
+            }else{
+                $img = 'https://core.arabianpay.net'.$category->image;
+            }
+            }else{
+            $img = 'https://api.arabianpay.net/public/placeholder.jpg';
+        }
         return [
             'id' => $category->id,
             'name' => $category->name,
-            'image' => url($category->banner ?? 'assets/img/placeholder.jpg'),
+            'image' => $img,
             'parent_id' => $category->parent_id ?? 0,
             'children' => $category->children
                 ? $category->children->map(function ($child) {
