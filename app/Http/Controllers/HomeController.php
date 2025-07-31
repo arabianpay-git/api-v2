@@ -485,7 +485,7 @@ class HomeController extends Controller
             ->get()
             ->map(function ($slider) {
                 return [
-                    'image' => $slider->image?'https://core.arabianpay.com'.$slider->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',  // convert image ID to URL
+                    'image' => "https://arabianpay.co//uploads/all/5b5acbc6-c272-41a9-92ea-13bef2fa1a5e.png",
                     'image_id' => (string) $slider->id,
                     'target' => [
                         'type' => 'brand',
