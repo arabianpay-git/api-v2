@@ -345,6 +345,7 @@ class HomeController extends Controller
                 'current_stock'
             ])
             ->with(['brand:id,name'])
+            ->where('name','!=',null)
             ->where('thumbnail','!=',null)
             ->where('published', 'published')
             ->orderByDesc('number_of_sales')
@@ -396,6 +397,7 @@ class HomeController extends Controller
                 'current_stock'
             ])
             ->with(['brand:id,name'])
+            ->where('name','!=',null)
             ->where('published', 'published')
             ->where('featured', 1)
             ->where('thumbnail','!=',null)
