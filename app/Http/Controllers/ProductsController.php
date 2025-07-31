@@ -91,7 +91,7 @@ class ProductsController extends Controller
         return $path ? 'https://partners.arabianpay.net'.$path : 'https://api.arabianpay.net/public/placeholder.jpg';
     }
 
-    public function productDetails($id)
+    public function getProductDetails($id)
     {
         $product = Product::findOrFail($id);
         $shop = ShopSetting::where('user_id', $product->user_id)->first();
