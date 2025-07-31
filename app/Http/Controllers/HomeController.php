@@ -1200,7 +1200,13 @@ class HomeController extends Controller
                 return [
                     'image' => $slider->image??'https://api.arabianpay.net/public/placeholder.jpg', // get URL by ID
                     'image_id' => (string) $slider->id,
-                    'target' => '', // No target data in table
+                    'target' => [
+                    'type' => 'brand',
+                    'id' => 1,
+                    'name' => 'Generic',
+                    'image' => $slider->image?'https://core.arabianpay.com'.$slider->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
+                    'rating' => 0
+                ], // No target data in table
                 ];
             });
     }
