@@ -43,7 +43,7 @@ class ProductsController extends Controller
                 'id' => $product->id,
                 'name' => $product->name,
                 'brand' => optional($product->brand)->name ?? 'Generic',
-                'thumbnail_image' => $product->thumbnail??'https://api.arabianpay.net/public/placeholder.jpg',
+                'thumbnail_image' => $this->fullImageUrl($product->thumbnail),
                 'has_discount' => $product->discount > 0,
                 'discount' => (float)$product->discount,
                 'discount_type' => $product->discount_type,
@@ -88,7 +88,7 @@ class ProductsController extends Controller
      */
     protected function fullImageUrl($path)
     {
-        return $path ? url($path) : url('/assets/img/placeholder.jpg');
+        return $path ? 'https://partners.arabianpay.net'.$path : 'https://api.arabianpay.net/public/placeholder.jpg';
     }
 
     public function getProductDetails($id)
@@ -198,7 +198,7 @@ class ProductsController extends Controller
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
-                    'image' => url($category->image ?? '/assets/img/placeholder.jpg'),
+                    'image' => $category->image ?'https://core.arabianpay.net'.$category->image:'https://api.arabianpay.net/public/placeholder.jpg',
                     'parent_id' => $category->parent_id,
                     'children' => $this->mapChildren($category->childrenRecursive),
                 ];
@@ -215,7 +215,7 @@ class ProductsController extends Controller
                     'user_id' => $shop->user_id,
                     'name' => $shop->name,
                     'logo' => url($shop->logo),
-                    'cover' => url('/assets/img/placeholder.jpg'),
+                    'cover' => $shop->banner?$shop->banner:'https://api.arabianpay.net/public/placeholder.jpg',
                     'rating' => 0, // static or pull from review system
                 ];
             });
@@ -238,7 +238,7 @@ class ProductsController extends Controller
             return [
                 'id' => $child->id,
                 'name' => $child->name,
-                'image' => url($child->image ?? '/assets/img/placeholder.jpg'),
+                'image' => $this->fullImageUrl($child->image),
                 'parent_id' => $child->parent_id,
                 'children' => $this->mapChildren($child->childrenRecursive),
             ];
