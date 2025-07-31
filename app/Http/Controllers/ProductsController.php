@@ -91,94 +91,74 @@ class ProductsController extends Controller
         return $path ? 'https://partners.arabianpay.net'.$path : 'https://api.arabianpay.net/public/placeholder.jpg';
     }
 
-    public function getProductDetails($id)
+    public function productDetails($id)
     {
-        $product = Product::with([
-            'brand:id,name,logo',
-            'shop' => function ($q) {
-                $q->select('id', 'name', 'logo', 'user_id');
-            },
-            //'stocks' // if you have a product_stocks table
-        ])
-        ->where('id', $id)
-        ->where('published', 'published')
-        ->firstOrFail();
+        $product = Product::findOrFail($id);
+        $shop = ShopSetting::where('user_id', $product->user_id)->first();
+        $brand = Brand::find($product->brand_id);
 
-        // build photos array
-        $photos = collect(json_decode($product->photos ?? '[]'))->map(function ($path) {
-            return [
-                'variant' => '',
-                'path' => url($path),
-            ];
-        })->toArray();
+        $unitPrice = $product->unit_price;
+        $discount = $product->discount ?? 0;
+        $hasDiscount = $discount > 0;
+        $mainPrice = $hasDiscount
+            ? ($product->discount_type === 'percent'
+                ? $unitPrice - ($unitPrice * $discount / 100)
+                : $unitPrice - $discount)
+            : $unitPrice;
 
-        // tags: convert tags string to array
-        $tags = array_filter(array_map('trim', explode(',', $product->tags ?? '')));
-
-        // choice options and colors: assuming variants/colors stored in your products table or other relations
-        $choiceOptions = []; // Fill with your own logic if you have choice options
-        $colors = [];        // Fill with your own logic if you have colors
-
-        // stock details
-        /*
-        $stocks = $product->stocks ? $product->stocks->map(function ($stock) use ($product) {
-            return [
-                'image' => $stock->image ? url($stock->image) : null,
-                'qty' => (int)$stock->qty,
-                'sku' => $stock->sku,
-                'variant' => $stock->variant,
-                'stroked_price' => [
-                    'amount' => number_format((float)$product->unit_price, 2),
-                    'symbol' => 'SR',
+        return response()->json([
+            "id" => $product->id,
+            "name" => $product->name,
+            "slug" => $product->slug,
+            "added_by" => $product->added_by,
+            "seller_id" => $product->user_id,
+            "shop_id" => $shop->id ?? 0,
+            "shop_name" => $shop->name ?? '',
+            "shop_logo" => $this->fullImageUrl($shop->logo),
+            "photos" => collect(json_decode($product->photos, true))->map(fn($photo) => [
+                "variant" => "",
+                "path" => $this->fullImageUrl($photo)
+            ]),
+            "thumbnail_image" => $this->fullImageUrl($product->thumbnail),
+            "tags" => json_decode($product->tags, true) ?? [],
+            "choice_options" => [], // إذا كان عندك خيارات، املأها
+            "colors" => [], // إذا كان عندك ألوان، املأها
+            "has_discount" => $hasDiscount,
+            "discount" => (float) $discount,
+            "discount_type" => $product->discount_type,
+            "stroked_price" => round($unitPrice, 2),
+            "main_price" => round($mainPrice, 2),
+            "currency_symbol" => "SR",
+            "current_stock" => $product->current_stock,
+            "unit" => $product->unit,
+            "rating" => (float) $product->rating ?? 0,
+            "num_reviews" => 0, // إذا عندك جدول مراجعات اربطه هنا
+            "min_qty" => $product->min_qty ?? 1,
+            "description" => $product->description,
+            "downloads" => null,
+            "brand" => $brand ? [
+                "id" => $brand->id,
+                "name" => $brand->name,
+                "logo" => $this->fullImageUrl($brand->logo)
+            ] : null,
+            "is_wholesale" => false,
+            "wholesale" => [],
+            "est_shipping_time" => (int) ($product->est_shipping_days ?? 0),
+            "stock" => [[
+                "image" => null,
+                "qty" => $product->current_stock,
+                "sku" => $product->sku,
+                "variant" => "",
+                "stroked_price" => [
+                    "amount" => number_format($unitPrice, 2),
+                    "symbol" => "SR"
                 ],
-                'main_price' => [
-                    'amount' => number_format((float)$this->calculateMainPrice($product), 2),
-                    'symbol' => 'SR',
-                ],
-            ];
-        }) : [];
-
-        */
-
-        $data = [
-            'id' => $product->id,
-            'name' => $product->name,
-            'slug' => $product->slug,
-            'added_by' => $product->added_by,
-            'seller_id' => $product->user_id,
-            'shop_id' => optional($product->shop)->id ?? null,
-            'shop_name' => optional($product->shop)->name ?? '',
-            'shop_logo' => optional($product->shop) ? url($product->shop->logo) : null,
-            'photos' => $photos,
-            'thumbnail_image' => url($product->thumbnail),
-            'tags' => $tags,
-            'choice_options' => $choiceOptions,
-            'colors' => $colors,
-            'has_discount' => $product->discount > 0,
-            'discount' => (float)$product->discount,
-            'discount_type' => $product->discount_type,
-            'stroked_price' => (float)$product->unit_price,
-            'main_price' => (float)$this->calculateMainPrice($product),
-            'currency_symbol' => 'SR',
-            'current_stock' => (int)$product->current_stock,
-            'unit' => $product->unit,
-            'rating' => (float)$product->rating,
-            'num_reviews' => 0, // Fill with actual reviews count if available
-            'min_qty' => (int)$product->min_qty,
-            'description' => $product->description,
-            //'downloads' => [], // or fill with actual download links if any
-            'brand' => [
-                'id' => optional($product->brand)->id ?? null,
-                'name' => optional($product->brand)->name ?? '',
-                'logo' => optional($product->brand) ? url($product->brand->logo) : null,
-            ],
-            'is_wholesale' => false, // update if you have wholesale
-            //'wholesale' => [], // fill if you have wholesale tiers
-            //'est_shipping_time' => (int)($product->est_shipping_days ?? 0),
-        ];
-
-        return $this->returnData($data);
-       
+                "main_price" => [
+                    "amount" => number_format($mainPrice, 2),
+                    "symbol" => "SR"
+                ]
+            ]]
+        ]);
     }
 
     public function getProductFilters()
@@ -215,7 +195,7 @@ class ProductsController extends Controller
                     'user_id' => $shop->user_id,
                     'name' => $shop->name,
                     'logo' => url($shop->logo),
-                    'cover' => $shop->banner?$shop->banner:'https://api.arabianpay.net/public/placeholder.jpg',
+                    'cover' => $this->fullImageUrl($shop->banner),
                     'rating' => 0, // static or pull from review system
                 ];
             });
