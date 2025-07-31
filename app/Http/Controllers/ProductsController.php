@@ -91,6 +91,9 @@ class ProductsController extends Controller
         return $path ? 'https://partners.arabianpay.net'.$path : 'https://api.arabianpay.net/public/placeholder.jpg';
     }
 
+    public function checkVariation(){
+        return $this->returnData([],'success');
+    }
     public function getProductDetails($id)
     {
         $product = Product::findOrFail($id);
