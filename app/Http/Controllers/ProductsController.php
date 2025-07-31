@@ -120,7 +120,7 @@ class ProductsController extends Controller
                 "path" => $this->fullImageUrl($photo)
             ]),
             "thumbnail_image" => $this->fullImageUrl($product->thumbnail),
-            "tags" => json_decode($product->tags, true) ?? [],
+            "tags" => [],
             "choice_options" => [], // إذا كان عندك خيارات، املأها
             "colors" => [], // إذا كان عندك ألوان، املأها
             "has_discount" => $hasDiscount,
