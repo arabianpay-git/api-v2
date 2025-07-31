@@ -92,7 +92,7 @@ class ProductsController extends Controller
     }
 
     public function checkVariation(){
-        return $this->returnData([],'success');
+        return $this->returnData('','success');
     }
     public function getProductDetails($id)
     {
