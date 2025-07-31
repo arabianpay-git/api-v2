@@ -1198,7 +1198,7 @@ class HomeController extends Controller
         return AdsSlider::select('image', 'id')->get()
             ->map(function ($slider) {
                 return [
-                    'image' => $slider->image??'https://api.arabianpay.net/public/placeholder.jpg', // get URL by ID
+                    'image' => $slider->image?'https://core.arabianpay.com'.$slider->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png', // get URL by ID
                     'image_id' => (string) $slider->id,
                     'target' => [
                       'type' => 'brand',
@@ -1218,7 +1218,7 @@ class HomeController extends Controller
             ->get()
             ->map(function ($slider) {
                 return [
-                    'image' => $slider->image??'https://api.arabianpay.net/public/placeholder.jpg',  // convert image ID to URL
+                    'image' => $slider->image?'https://core.arabianpay.com'.$slider->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',  // convert image ID to URL
                     'image_id' => (string) $slider->id,
                     'target' => [
                         'type' => 'brand',
