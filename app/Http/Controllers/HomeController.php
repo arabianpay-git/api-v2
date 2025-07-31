@@ -1201,12 +1201,12 @@ class HomeController extends Controller
                     'image' => $slider->image??'https://api.arabianpay.net/public/placeholder.jpg', // get URL by ID
                     'image_id' => (string) $slider->id,
                     'target' => [
-                    'type' => 'brand',
-                    'id' => 1,
-                    'name' => 'Generic',
-                    'image' => $slider->image?'https://core.arabianpay.com'.$slider->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
-                    'rating' => 0
-                ], // No target data in table
+                      'type' => 'brand',
+                      'id' => 1,
+                      'name' => 'Generic',
+                      'image' => $slider->image?'https://core.arabianpay.com'.$slider->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
+                      'rating' => 0
+                  ], // No target data in table
                 ];
             });
     }
@@ -1220,7 +1220,13 @@ class HomeController extends Controller
                 return [
                     'image' => $slider->image??'https://api.arabianpay.net/public/placeholder.jpg',  // convert image ID to URL
                     'image_id' => (string) $slider->id,
-                    'target' => '', // no target info in current schema
+                    'target' => [
+                        'type' => 'brand',
+                        'id' => 1,
+                        'name' => 'Generic',
+                        'image' => $slider->image?'https://core.arabianpay.com'.$slider->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
+                        'rating' => 0
+                    ], // No target data in table
                 ];
             });
     }
