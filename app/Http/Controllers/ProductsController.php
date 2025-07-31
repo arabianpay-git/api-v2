@@ -106,7 +106,7 @@ class ProductsController extends Controller
                 : $unitPrice - $discount)
             : $unitPrice;
 
-        return response()->json([
+        return $this->returnData([
             "id" => $product->id,
             "name" => $product->name,
             "slug" => $product->slug,
@@ -158,7 +158,7 @@ class ProductsController extends Controller
                     "symbol" => "SR"
                 ]
             ]]
-        ]);
+        ],'Product success');
     }
 
     public function getProductFilters()
