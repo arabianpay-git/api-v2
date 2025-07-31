@@ -344,8 +344,10 @@ class HomeController extends Controller
                 'rating',
                 'current_stock'
             ])
-            ->with(['brand:id,name'])
             ->where('name','!=',"")
+            ->where('name','!=',null)
+            ->where('name','!='," ")
+            ->with(['brand:id,name'])
             ->where('thumbnail','!=',null)
             ->where('published', 'published')
             ->orderByDesc('number_of_sales')
@@ -368,6 +370,7 @@ class HomeController extends Controller
                     'brand' => $product->brand->name ?? 'عام',
                     'thumbnail_image' => !empty($product->thumbnail)?'https://partners.arabianpay.net'.$product->thumbnail:'https://api.arabianpay.net/public/placeholder.jpg',
                     'has_discount' => $discount > 0,
+                    'unit' => $product->unit,
                     'discount' => $discount,
                     'discount_type' => $product->discount_type,
                     'stroked_price' => $mainPrice,
@@ -396,8 +399,10 @@ class HomeController extends Controller
                 'rating',
                 'current_stock'
             ])
-            ->with(['brand:id,name'])
             ->where('name','!=',"")
+            ->where('name','!=',null)
+            ->where('name','!='," ")
+            ->with(['brand:id,name'])
             ->where('published', 'published')
             ->where('featured', 1)
             ->where('thumbnail','!=',null)
@@ -422,6 +427,7 @@ class HomeController extends Controller
                     'thumbnail_image' => !empty($product->thumbnail)?'https://partners.arabianpay.net'.$product->thumbnail:'https://api.arabianpay.net/public/placeholder.jpg',
                     'has_discount' => $discount > 0,
                     'discount' => $discount,
+                    'unit' => $product->unit,
                     'discount_type' => $product->discount_type,
                     'stroked_price' => $mainPrice,
                     'main_price' => max($discountedPrice, 0), // prevent negative pricing
