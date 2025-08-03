@@ -64,6 +64,51 @@ class ProductsController extends Controller
         return $this->returnData($data);
     }
 
+    public function getProductRelated($id)
+    {
+        $product = Product::findOrFail($id);
+
+        $relatedProducts = Product::where('id', '!=', $id)
+            ->where(function ($q) use ($product) {
+                $q->where('brand_id', $product->brand_id)
+                ->orWhere('category_id', $product->category_id);
+            })
+            ->where('published', 'published')
+            ->take(10)
+            ->get();
+
+        $results = $relatedProducts->map(function ($item) {
+            $hasDiscount = $item->discount > 0;
+            $discountAmount = $item->discount ?? 0;
+            $price = (float) $item->unit_price;
+
+            if ($item->discount_type === 'percent') {
+                $discountedPrice = $price - ($price * $discountAmount / 100);
+            } else {
+                $discountedPrice = $price - $discountAmount;
+            }
+
+            return [
+                'id'              => $item->id,
+                'name'            => $item->name,
+                'brand'           => optional($item->brand)->name ?? 'Generic',
+                'thumbnail_image' => $this->fullImageUrl($item->thumbnail),
+                'has_discount'    => $hasDiscount,
+                'discount'        => (float) $discountAmount,
+                'discount_type'   => $item->discount_type ?? 'amount',
+                'stroked_price'   => round($price, 2),
+                'main_price'      => round($discountedPrice, 2),
+                'rating'          => (float) ($item->rating ?? 0),
+                'num_reviews'     => $item->reviews()->count(),
+                'is_wholesale'    => false,
+                'currency_symbol' => 'SR',
+                'in_stock'        => $item->current_stock > 0,
+            ];
+        });
+
+        return $this->returnData($results,'get related products successfully');
+    }
+
     /**
      * Calculate the discounted main price.
      */
