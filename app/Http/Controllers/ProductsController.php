@@ -99,7 +99,7 @@ class ProductsController extends Controller
                 'stroked_price'   => round($price, 2),
                 'main_price'      => round($discountedPrice, 2),
                 'rating'          => (float) ($item->rating ?? 0),
-                'num_reviews'     => $item->reviews()->count(),
+                'num_reviews'     => 0,
                 'is_wholesale'    => false,
                 'currency_symbol' => 'SR',
                 'in_stock'        => $item->current_stock > 0,
