@@ -448,9 +448,7 @@ class CartsController extends Controller
 
     public function sendOrder(Request $request)
     {
-        $request->validate([
-            'address_id' => 'required|integer|exists:addresses,id',
-        ]);
+        
 
         $user = auth()->user();
         $cart = Cart::with('items.product')->where('user_id', $user->id)->first();
