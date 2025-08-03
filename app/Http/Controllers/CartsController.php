@@ -34,7 +34,7 @@ class CartsController extends Controller
     public function setCart(Request $request)
     {
         $encryptionService = new EncryptionService();
-        $data = $encryptionService->decrypt($request->input('data'));
+        $data = json_decode($encryptionService->decrypt($request->input('data')), true);
 
         $user = auth()->user();
         $cart = Cart::firstOrCreate(['user_id' => $user->id]);
