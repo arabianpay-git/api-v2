@@ -34,6 +34,7 @@ class ProductsController extends Controller
         ])
         ->with(['brand:id,name']) // eager-load brand name
         ->where('published', 'published')
+        ->where('thumbnail','!=',null)
         ->orderByDesc('id'); // or any order you need
 
         // If you want pagination, use paginate, e.g. 20 per page:
