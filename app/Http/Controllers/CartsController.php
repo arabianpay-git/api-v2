@@ -33,16 +33,13 @@ class CartsController extends Controller
 
     public function setCart(Request $request)
     {
-        $request->validate([
-            'data' => 'required|array|min:1',
-            'data.*.product_id' => 'required|integer|exists:products,id',
-            'data.*.quantity' => 'required|integer|min:1',
-        ]);
+        $encryptionService = new EncryptionService();
+        $data = $encryptionService->decrypt($request->input('data'));
 
         $user = auth()->user();
         $cart = Cart::firstOrCreate(['user_id' => $user->id]);
 
-        foreach ($request->input('data') as $item) {
+        foreach ($data as $item) {
             if (!is_array($item)) continue; // حماية إضافية
             $product = Product::findOrFail($item['product_id']);
 
