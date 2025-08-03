@@ -109,6 +109,10 @@ class ProductsController extends Controller
         return $this->returnData($results,'get related products successfully');
     }
 
+    public function getProductReviews(){
+        $this->returnData([],'success');
+    }
+
     /**
      * Calculate the discounted main price.
      */
