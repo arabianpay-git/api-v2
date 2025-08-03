@@ -111,7 +111,7 @@ class ProductsController extends Controller
     }
 
     public function getProductReviews(Request $request){
-        $this->returnData([],'success');
+        $this->returnData('','success');
     }
 
     /**
