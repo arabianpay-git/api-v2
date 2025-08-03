@@ -485,6 +485,19 @@ class CartsController extends Controller
                 ];
             });
 
+            $orderItems = $items->map(function ($item) {
+                $description = $item->product->short_description ?? $item->product->description ?? '';
+
+                return [
+                    'id'              => optional($item->product)->id,
+                    'name'            => optional($item->product)->name,
+                    'description'     => $description,
+                    'thumbnail_image' => $this->fullImageUrl($item->product->thumbnail),
+                    'price'           => $item->unit_price,
+                    'quantity'        => $item->quantity,
+                ];
+            });
+
             $subTotal = $items->sum('total_price');
             $tax = $items->sum('tax');
             $shipping = $cart->shipping_cost ?? 0;
@@ -598,14 +611,37 @@ class CartsController extends Controller
         $cart->items()->delete();
         $cart->delete();
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => 'Orders, transaction, and payment schedule created successfully.',
-            'reference_id' => $referenceId,
-            'transaction_id' => $transaction->id,
-            'orders' => $ordersIds,
-        ]);
+        $data = [
+            'reference_id'      => $referenceId,
+            'order_code'        => $order->id,
+            'supplier'          => [
+                                    "id" => $order->seller->shop->id,
+                                    "slug" => $order->seller->slug,
+                                    "user_id" => $order->seller->user_id,
+                                    "name" => $order->seller->name,
+                                    'logo' => $order->seller->logo?'https://partners.arabianpay.net'.$order->seller->logo:'https://api.arabianpay.net/public/placeholder.jpg',
+                                    "cover" => $order->seller->banner?$order->seller->banner:'https://api.arabianpay.net/public/placeholder.jpg',
+                                    "rating" => $order->seller->rating,
+                                   ],
+            'status'            => $order->general_status,
+            'total'             => $order->grand_total,
+            'order_date'        => date('d-m-Y', strtotime($order->created_at)),
+            'shipping'          => [
+                'type'          => $order->shipping_type,
+                'cost'          => $order->shipping_cost,
+            ],
+            'reason'            => "",
+            'subtotal'          => $subTotal,
+            'coupon_discount'   => $couponDiscount,
+            'tax'               => $tax,
+            'order_items'       => $orderItems
+        ];
+
+        $cart->items()->delete();
+        $cart->delete();
+
+        return $this->returnData($data,"Order placed successfully.");
+
     }
 
 
