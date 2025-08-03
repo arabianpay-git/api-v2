@@ -33,7 +33,7 @@ class ReviewController extends Controller
             ->orderBy('created_at', 'desc')
             ->get(['id', 'rating', 'comment', 'photos', 'created_at']);
 
-        $this->returnData($reviews);
+        return $this->returnData($reviews);
     }
 
     public function addProductReview(Request $request)
