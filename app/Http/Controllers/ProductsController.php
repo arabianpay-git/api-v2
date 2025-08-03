@@ -114,6 +114,11 @@ class ProductsController extends Controller
         $this->returnData('','success');
     }
 
+
+    public function getProductWishlists(Request $request){
+        $this->returnData('','success');
+    }
+
     /**
      * Calculate the discounted main price.
      */
