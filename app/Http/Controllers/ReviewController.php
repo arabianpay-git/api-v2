@@ -25,7 +25,7 @@ class ReviewController extends Controller
     public function getProductReviews(Request $request)
     {
         $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'required',
         ]);
 
         $reviews = Review::where('product_id', $request->product_id)
