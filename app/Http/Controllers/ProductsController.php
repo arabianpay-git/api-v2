@@ -11,6 +11,7 @@ use App\Models\ShopSetting;
 use App\Models\Slider;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
+use Request;
 
 class ProductsController extends Controller
 {
@@ -109,7 +110,7 @@ class ProductsController extends Controller
         return $this->returnData($results,'get related products successfully');
     }
 
-    public function getProductReviews(){
+    public function getProductReviews(Request $request){
         $this->returnData([],'success');
     }
 
