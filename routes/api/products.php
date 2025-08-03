@@ -7,6 +7,5 @@ Route::prefix('v2')->middleware(['auth:sanctum', 'sanctum.auth.json'])->group(fu
     Route::get('/product-details/{id}', [ProductsController::class, 'getProductDetails']);
     Route::get('/products/related/{id}', [ProductsController::class, 'getProductRelated']);
     Route::get('/products/filter', [ProductsController::class, 'getProductFilters']);
-    Route::get('/reviews/get', [ProductsController::class, 'getProductReviews']);
     Route::post('/products/check-variation', [ProductsController::class, 'checkVariation']);
 });

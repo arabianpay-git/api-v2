@@ -33,11 +33,7 @@ class ReviewController extends Controller
             ->orderBy('created_at', 'desc')
             ->get(['id', 'rating', 'comment', 'photos', 'created_at']);
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'data' => $reviews
-        ]);
+        $this->returnData($reviews);
     }
 
     public function addProductReview(Request $request)
