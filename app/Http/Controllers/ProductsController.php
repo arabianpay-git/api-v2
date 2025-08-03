@@ -10,6 +10,7 @@ use App\Models\Shop;
 use App\Models\ShopSetting;
 use App\Models\Slider;
 use App\Traits\ApiResponseTrait;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Request;
 
@@ -221,50 +222,54 @@ class ProductsController extends Controller
 
     public function getProductFilters()
     {
-        // 1) Fetch brands: all published brands used in products
-        $brands = Brand::select('id', 'name')
-            ->whereHas('products') // if you only want brands with products
-            ->orderBy('name')
-            ->get();
+        try{
+            // 1) Fetch brands: all published brands used in products
+            $brands = Brand::select('id', 'name')
+                ->whereHas('products') // if you only want brands with products
+                ->orderBy('name')
+                ->get();
 
-        // 2) Fetch categories recursively with children
-        $categories = Category::with(['childrenRecursive'])
-            ->where('parent_id', 0)
-            ->select('id', 'name', 'banner as image', 'parent_id')
-            ->get()
-            ->map(function ($category) {
-                return [
-                    'id' => $category->id,
-                    'name' => $category->name,
-                    'image' => $category->image ?'https://core.arabianpay.net'.$category->image:'https://api.arabianpay.net/public/placeholder.jpg',
-                    'parent_id' => $category->parent_id,
-                    'children' => $this->mapChildren($category->childrenRecursive),
-                ];
-            });
+            // 2) Fetch categories recursively with children
+            $categories = Category::with(['childrenRecursive'])
+                ->where('parent_id', 0)
+                ->select('id', 'name', 'banner as image', 'parent_id')
+                ->get()
+                ->map(function ($category) {
+                    return [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'image' => $category->image ?'https://core.arabianpay.net'.$category->image:'https://api.arabianpay.net/public/placeholder.jpg',
+                        'parent_id' => $category->parent_id,
+                        'children' => $this->mapChildren($category->childrenRecursive),
+                    ];
+                });
 
-        // 3) Fetch stores from shops
-        $stores = ShopSetting::select('id', 'user_id', 'name', 'logo')
-            ->limit(50) // optional limit
-            ->get()
-            ->map(function ($shop) {
-                return [
-                    'id' => $shop->id,
-                    'slug' => \Str::slug($shop->name) . '-' . $shop->id,
-                    'user_id' => $shop->user_id,
-                    'name' => $shop->name,
-                    'logo' => url($shop->logo),
-                    'cover' => $this->fullImageUrl($shop->banner),
-                    'rating' => 0, // static or pull from review system
-                ];
-            });
+            // 3) Fetch stores from shops
+            $stores = ShopSetting::select('id', 'user_id', 'name', 'logo')
+                ->limit(50) // optional limit
+                ->get()
+                ->map(function ($shop) {
+                    return [
+                        'id' => $shop->id,
+                        'slug' => \Str::slug($shop->name) . '-' . $shop->id,
+                        'user_id' => $shop->user_id,
+                        'name' => $shop->name,
+                        'logo' => url($shop->logo),
+                        'cover' => $this->fullImageUrl($shop->banner),
+                        'rating' => 0, // static or pull from review system
+                    ];
+                });
 
-        $data = [
-            'brands' => $brands,
-            'categories' => $categories,
-            'stores' => $stores,
-        ];
+            $data = [
+                'brands' => $brands,
+                'categories' => $categories,
+                'stores' => $stores,
+            ];
 
-        return $this->returnData($data);
+            return $this->returnData($data);
+        }catch(Exception $ex){
+            return $this->returnData([]);
+        }
     }
 
     /**
