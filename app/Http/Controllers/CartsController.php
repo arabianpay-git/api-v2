@@ -175,7 +175,7 @@ class CartsController extends Controller
     }
     */
 
-    /*
+    
     public function getCart(Request $request)
     {
         try {
@@ -247,24 +247,9 @@ class CartsController extends Controller
             ], 500);
         }
     }
-    */
+    
 
-    public function getCart()
-    {
-        $user = auth()->user();
-        $cart = Cart::with('items.product')->where('user_id', $user->id)->first();
-
-        if (!$cart) {
-            return response()->json([
-                'status' => true,
-                'errNum' => 'S200',
-                'msg' => 'Cart is empty.',
-                'data' => [],
-            ]);
-        }
-        return $this->returnData(new CartResource($cart), 'Cart retrieved successfully.');
-
-    }
+  
 
     public function getCartDetails()
     {
