@@ -117,7 +117,7 @@ class ProductsController extends Controller
 
 
     public function getProductWishlists(Request $request){
-        $this->returnData('','success');
+        $this->returnData([],'success');
     }
 
     /**

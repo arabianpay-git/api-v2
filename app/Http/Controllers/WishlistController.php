@@ -29,11 +29,13 @@ class WishlistController extends Controller
             ->where('user_id', $request->user()->id)
             ->get();
 
-        return response()->json([
+        $data = [
             'status' => true,
             'errNum' => 'S200',
             'data' => $wishlist
-        ]);
+        ];
+
+        return $this->returnData($data);
     }
 
     public function add(Request $request)
