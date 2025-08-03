@@ -210,7 +210,7 @@ class CartsController extends Controller
                 return [
                     'product_id' => $product->id,
                     'product_name' => $product->name,
-                    'product_image' => asset($product->thumbnail_image), // Assuming your model has `thumbnail_image`
+                    'product_image' => $this->fullImageUrl($product->thumbnail), // Assuming your model has `thumbnail_image`
                     'quantity' => (int) $item->quantity,
                     'options2' => $item->options ?? "[]",
                     'options' => json_decode($item->options ?? "[]", true),
@@ -248,7 +248,10 @@ class CartsController extends Controller
         }
     }
     
-
+    protected function fullImageUrl($path)
+    {
+        return $path ? 'https://partners.arabianpay.net'.$path : 'https://api.arabianpay.net/public/placeholder.jpg';
+    }
   
 
     public function getCartDetails()
