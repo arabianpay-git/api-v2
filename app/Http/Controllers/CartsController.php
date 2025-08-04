@@ -568,8 +568,8 @@ class CartsController extends Controller
             'uuid' => (string) Str::uuid(),
             'refrence_payment' => $referenceId,
             'user_id' => $user->id,
-            'order_id' => null, // لأنك تربط عدة طلبات، ليس طلب واحد فقط
-            'seller_id' => null, // لأنه متعدد الموردين
+            'order_id' => $ordersIds, // لأنك تربط عدة طلبات، ليس طلب واحد فقط
+            'seller_id' => $supplierId, // لأنه متعدد الموردين
             'product_ids' => json_encode(array_unique($allProducts)),
             'plan_id' => $instalmentPlan->id ?? null,
             'collected' => 0,
