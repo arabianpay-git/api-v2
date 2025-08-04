@@ -577,7 +577,7 @@ class CartsController extends Controller
             'canceled' => 0,
             'loan_amount' => $totalGrandTotal,
             'loan_start_date' => now()->toDateString(),
-            'loan_end_date' => now()->addMonths($instalmentPlan->duration)->toDateString(),
+            'loan_end_date' => now()->addMonths((int)$instalmentPlan->duration)->toDateString(),
             'loan_term' => $instalmentPlan->duration,
             'subscription_fees' => $instalmentPlan->transaction_fee,
             'credit_limit_at_time' => $user->credit_limit,
