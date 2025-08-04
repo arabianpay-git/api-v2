@@ -448,7 +448,14 @@ class CartsController extends Controller
 
     public function sendOrder(Request $request)
     {
-        
+        $request->validate([
+            'address_id' => 'required',
+        ]);
+
+        $encryptionService = new EncryptionService();
+        $addressID = $encryptionService->decrypt($request->input('address_id'));
+
+       
 
         $user = auth()->user();
         $cart = Cart::with('items.product')->where('user_id', $user->id)->first();
@@ -461,7 +468,7 @@ class CartsController extends Controller
             ], 404);
         }
 
-        $address = Address::findOrFail($request->address_id);
+        $address = Address::findOrFail($addressID);
         $itemsBySupplier = $cart->items->groupBy(function ($item) {
             return $item->product->user_id;
         });
