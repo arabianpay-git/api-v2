@@ -665,8 +665,8 @@ class CartsController extends Controller
             'order_items'       => $orderItems
         ]];
 
-        //$cart->items()->delete();
-        //$cart->delete();
+        $cart->items()->delete();
+        $cart->delete();
 
         return $this->returnData($data,"Order placed successfully.");
 
