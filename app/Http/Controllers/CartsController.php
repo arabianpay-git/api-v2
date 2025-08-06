@@ -499,10 +499,13 @@ class CartsController extends Controller
 
                 return [
                     'id'              => optional($item->product)->id,
-                    'name'            => optional($item->product)->name,
-                    'description'     => $description,
+                    'name'            => optional($item->product)->name??"-",
+                    'description'     => $description??"",
                     'thumbnail_image' => $this->fullImageUrl($item->product->thumbnail),
-                    'price'           => $item->unit_price,
+                    'price'           => [
+                                        "amount" => $item->unit_price,
+                                        "symbol" => "SR"  
+                                        ],
                     'quantity'        => $item->quantity,
                 ];
             });
@@ -619,27 +622,46 @@ class CartsController extends Controller
 
         $data = [
             'reference_id'      => $referenceId,
-            'order_code'        => $order->id,
+            'order_code'        => "'".$order->id."'",
             'supplier'          => [
                                     "id" => $order->seller->shop->id,
                                     "slug" => $order->seller->slug,
                                     "user_id" => $order->seller->user_id,
-                                    "name" => $order->seller->name,
+                                    "name" => $order->seller->shop->name??"-",
                                     'logo' => $order->seller->logo?'https://partners.arabianpay.net'.$order->seller->logo:'https://api.arabianpay.net/public/placeholder.jpg',
                                     "cover" => $order->seller->banner?$order->seller->banner:'https://api.arabianpay.net/public/placeholder.jpg',
-                                    "rating" => $order->seller->rating,
+                                    "rating" => $order->seller->shop->rating??0,
                                    ],
-            'status'            => $order->general_status,
-            'total'             => $order->grand_total,
+            'status'            => [
+                                     "id" => 1,
+                                     "slug" => $order->general_status,
+                                     "name" => $order->general_status   
+                                    ],
+            'total'             => [
+                                        "amount" => $order->grand_total,
+                                        "symbol" => "SR"
+                                    ],
             'order_date'        => date('d-m-Y', strtotime($order->created_at)),
             'shipping'          => [
                 'type'          => $order->shipping_type,
-                'cost'          => $order->shipping_cost,
+                'cost'          => [
+                                     "amount" => $order->shipping_cost,
+                                     "symbol" => "SR"
+                                    ],
             ],
             'reason'            => "",
-            'subtotal'          => $subTotal,
-            'coupon_discount'   => $couponDiscount,
-            'tax'               => $tax,
+            'subtotal'          => [
+                                      "amount" => $subTotal,
+                                      "symbol" => "SR"  
+                                    ],
+            'coupon_discount'   => [
+                                      "amount" => $couponDiscount,
+                                      "symbol" => "SR"  
+                                    ],
+            'tax'               => [
+                                      "amount" => $tax,
+                                      "symbol" => "SR"  
+                                    ],
             'order_items'       => $orderItems
         ];
 
