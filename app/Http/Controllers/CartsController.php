@@ -620,13 +620,13 @@ class CartsController extends Controller
         ]);
 
 
-        $data = [
+        $data = [[
             'reference_id'      => $referenceId,
-            'order_code'        => "'".$order->id."'",
+            'order_code'        => (string)$order->id,
             'supplier'          => [
                                     "id" => $order->seller->shop->id,
-                                    "slug" => $order->seller->slug,
-                                    "user_id" => $order->seller->user_id,
+                                    "slug" => $order->seller->shop->slug,
+                                    "user_id" => $order->seller->shop->user_id,
                                     "name" => $order->seller->shop->name??"-",
                                     'logo' => $order->seller->logo?'https://partners.arabianpay.net'.$order->seller->logo:'https://api.arabianpay.net/public/placeholder.jpg',
                                     "cover" => $order->seller->banner?$order->seller->banner:'https://api.arabianpay.net/public/placeholder.jpg',
@@ -663,7 +663,7 @@ class CartsController extends Controller
                                       "symbol" => "SR"  
                                     ],
             'order_items'       => $orderItems
-        ];
+        ]];
 
         //$cart->items()->delete();
         //$cart->delete();
