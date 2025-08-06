@@ -70,6 +70,11 @@ class Transaction extends Model
         return $this->belongsTo(User::class, 'seller_id');
     }
 
+    public function store()
+    {
+        return $this->belongsTo(User::class, 'seller_id');
+    }
+
     public function order()
     {
         return $this->belongsTo(Order::class, 'order_id');
