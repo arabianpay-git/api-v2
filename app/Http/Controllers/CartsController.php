@@ -34,12 +34,13 @@ class CartsController extends Controller
     public function setCart(Request $request)
     {
         $encryptionService = new EncryptionService();
-        $data = $encryptionService->decrypt($request->input('data'));
+        $data = json_decode($encryptionService->decrypt($request->input('data')));
 
         $user = auth()->user();
         $cart = Cart::firstOrCreate(['user_id' => $user->id]);
-
+        //dd($data);
         foreach ($data as $item) {
+            
             if (!is_array($item)) continue; // حماية إضافية
             $product = Product::findOrFail($item['product_id']);
 
@@ -452,6 +453,8 @@ class CartsController extends Controller
             'address_id' => 'required',
         ]);
 
+        //dd($request);
+
         $encryptionService = new EncryptionService();
         $addressID = $encryptionService->decrypt($request->input('address_id'));
 
@@ -459,7 +462,7 @@ class CartsController extends Controller
 
         $user = auth()->user();
         $cart = Cart::with('items.product')->where('user_id', $user->id)->first();
-
+        //dd($cart->items);
         if (!$cart || $cart->items->isEmpty()) {
             return response()->json([
                 'status' => false,
@@ -478,6 +481,7 @@ class CartsController extends Controller
         $allProducts = [];
         $allSuppliers = [];
         $ordersIds = [];
+        
 
         foreach ($itemsBySupplier as $supplierId => $items) {
             $productDetails = $items->map(function ($item) {
@@ -568,7 +572,7 @@ class CartsController extends Controller
             'uuid' => (string) Str::uuid(),
             'refrence_payment' => $referenceId,
             'user_id' => $user->id,
-            'order_id' => $ordersIds, // لأنك تربط عدة طلبات، ليس طلب واحد فقط
+            'order_id' => $order->id, // لأنك تربط عدة طلبات، ليس طلب واحد فقط
             'seller_id' => $supplierId, // لأنه متعدد الموردين
             'product_ids' => json_encode(array_unique($allProducts)),
             'plan_id' => $instalmentPlan->id ?? null,
@@ -613,9 +617,6 @@ class CartsController extends Controller
         ]);
 
 
-        $cart->items()->delete();
-        $cart->delete();
-
         $data = [
             'reference_id'      => $referenceId,
             'order_code'        => $order->id,
@@ -642,8 +643,8 @@ class CartsController extends Controller
             'order_items'       => $orderItems
         ];
 
-        $cart->items()->delete();
-        $cart->delete();
+        //$cart->items()->delete();
+        //$cart->delete();
 
         return $this->returnData($data,"Order placed successfully.");
 
