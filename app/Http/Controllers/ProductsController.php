@@ -206,7 +206,7 @@ class ProductsController extends Controller
             "seller_id" => $product->user_id,
             "shop_id" => $shop->id ?? 0,
             "shop_name" => $shop->name ?? '',
-            "shop_logo" => $this->fullImageUrl($shop->logo),
+            "shop_logo" => $this->fullImageUrl($shop->logo??''),
             "photos" => collect(
                 json_decode($product->photos, true) ?: [$product->thumbnail]
             )->map(fn($photo) => [
