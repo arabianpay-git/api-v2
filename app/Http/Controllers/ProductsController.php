@@ -18,7 +18,7 @@ class ProductsController extends Controller
 {
     use ApiResponseTrait;
 
-    public function index()
+    public function index(Request $request)
     {
         $productsQuery = Product::select([
             'id',
@@ -32,15 +32,43 @@ class ProductsController extends Controller
             'rating',
             'current_stock'
         ])
-        ->with(['brand:id,name']) // eager-load brand name
+        ->with(['brand:id,name'])
         ->where('published', 'published')
-        ->where('thumbnail','!=',null)
-        ->orderByDesc('id'); // or any order you need
+        ->whereNotNull('thumbnail');
 
-        // If you want pagination, use paginate, e.g. 20 per page:
+        // ✅ فلتر حسب الفئة (category_ids[])
+        if ($request->has('category_ids') && is_array($request->category_ids)) {
+            $productsQuery->whereIn('category_id', $request->category_ids);
+        }
+
+        // ✅ فلتر حسب الاسم (name)
+        if ($request->filled('name')) {
+            $productsQuery->where('name', 'LIKE', '%' . $request->name . '%');
+        }
+
+        // ✅ ترتيب حسب (sort_key)
+        switch ($request->input('sort_key')) {
+            case 'price_asc':
+                $productsQuery->orderBy('unit_price', 'asc');
+                break;
+            case 'price_desc':
+                $productsQuery->orderBy('unit_price', 'desc');
+                break;
+            case 'newest':
+                $productsQuery->orderBy('id', 'desc');
+                break;
+            case 'rating':
+                $productsQuery->orderBy('rating', 'desc');
+                break;
+            default:
+                $productsQuery->orderBy('id', 'desc');
+                break;
+        }
+
+        // ✅ تنفيذ الاستعلام مع pagination
         $products = $productsQuery->paginate(20);
 
-        // Build the products array to match your exact response format:
+        // ✅ تحويل النتائج
         $productsTransformed = $products->getCollection()->map(function ($product) {
             return [
                 'id' => $product->id,
@@ -53,17 +81,18 @@ class ProductsController extends Controller
                 'stroked_price' => (float)$product->stroked_price,
                 'main_price' => (float)$this->calculateMainPrice($product),
                 'rating' => (float)$product->rating,
-                'num_reviews' => 0, // add reviews count if you have reviews table
-                'is_wholesale' => false, // update if you have wholesale logic
+                'num_reviews' => 0,
+                'is_wholesale' => false,
                 'currency_symbol' => 'SR',
                 'in_stock' => (bool)($product->current_stock > 0),
             ];
         });
+
         $data = [
-                'total' => $products->total(),
-                'products' => $productsTransformed,
+            'total' => $products->total(),
+            'products' => $productsTransformed,
         ];
-         
+
         return $this->returnData($data);
     }
 
