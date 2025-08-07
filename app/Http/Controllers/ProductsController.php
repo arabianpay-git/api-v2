@@ -226,9 +226,9 @@ class ProductsController extends Controller
     public function getProductFilters(Request $request)
     {
         try {
-            $categoryIds = $request->input('category_id', []);
-            $brandIds = $request->input('brand_id', []);
-            $storeIds = $request->input('store_id', []);
+            $categoryIds = $request->get('category_id', []);
+            $brandIds = $request->get('brand_id', []);
+            $storeIds = $request->get('store_id', []);
 
             // ========== 1) Brands ==========
             $brands = Brand::select('id', 'name')
