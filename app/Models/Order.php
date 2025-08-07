@@ -16,6 +16,7 @@ class Order extends Model
         'assigned_to',
         'user_id',
         'seller_id',
+        'reference_id',
         'pickup_point_id',
         'product_details',
         'shipping_first_name',
