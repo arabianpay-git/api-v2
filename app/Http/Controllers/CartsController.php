@@ -453,7 +453,7 @@ class CartsController extends Controller
             'address_id' => 'required',
         ]);
 
-        //dd($request);
+        $transactionOrderId = (string) Str::uuid();
 
         $encryptionService = new EncryptionService();
         $addressID = $encryptionService->decrypt($request->input('address_id'));
@@ -476,7 +476,7 @@ class CartsController extends Controller
             return $item->product->user_id;
         });
 
-        $referenceId = 'REF-' . now()->format('YmdHis') . '-' . $user->id . '-' . strtoupper(Str::random(3));
+        $referenceId = 'AP-' . now()->format('YmdHis') . '-' . $user->id . '-' . strtoupper(Str::random(3));
         $totalGrandTotal = 0;
         $allProducts = [];
         $allSuppliers = [];
@@ -544,6 +544,8 @@ class CartsController extends Controller
                 $allProducts[] = $item->product_id;
             }
 
+            
+        }
             // Create Schedule Payments
             $instalmentPlan = InstalmentPlan::where('status', 'active')->first();
             $installmentsCount = (int) $instalmentPlan->installments;
@@ -558,7 +560,7 @@ class CartsController extends Controller
                     'user_id' => $user->id,
                     'seller_id' => $supplierId,
                     'order_id' => $order->id,
-                    'transaction_id' => ,
+                    'transaction_id' => $referenceId,
                     'instalment_number' => ($i + 1),
                     'due_date' => now()->addDays((int)$intervalDays * ($i + 1)),
                     'instalment_amount' => $amountPerInstallment,
@@ -569,7 +571,6 @@ class CartsController extends Controller
                     'payment_status' => 'pending',
                 ]);
             }
-        }
 
         // Create Transaction
         $transaction = Transaction::create([
@@ -597,7 +598,7 @@ class CartsController extends Controller
         ]);
 
         TransactionOrder::create([
-            'id' => (string) Str::uuid(),
+            'id' => $referenceId,
             'order_id' => $order->id,
             'supplier_id' => $supplierId,
             'plan_id' => $instalmentPlan->id ?? null,
@@ -620,51 +621,54 @@ class CartsController extends Controller
             'order_status' => 'waiting',
         ]);
 
+        $orders = Order::where('reference_id',$referenceId)->get();
 
-        $data = [[
-            'reference_id'      => $referenceId,
-            'order_code'        => (string)$order->id,
-            'supplier'          => [
-                                    "id" => $order->seller->shop->id,
-                                    "slug" => $order->seller->shop->slug,
-                                    "user_id" => $order->seller->shop->user_id,
-                                    "name" => $order->seller->shop->name??"-",
-                                    'logo' => $order->seller->logo?'https://partners.arabianpay.net'.$order->seller->logo:'https://api.arabianpay.net/public/placeholder.jpg',
-                                    "cover" => $order->seller->banner?$order->seller->banner:'https://api.arabianpay.net/public/placeholder.jpg',
-                                    "rating" => $order->seller->shop->rating??0,
-                                   ],
-            'status'            => [
-                                     "id" => 1,
-                                     "slug" => $order->general_status,
-                                     "name" => $order->general_status   
-                                    ],
-            'total'             => [
-                                        "amount" => $order->grand_total,
-                                        "symbol" => "SR"
-                                    ],
-            'order_date'        => date('d-m-Y', strtotime($order->created_at)),
-            'shipping'          => [
-                'type'          => $order->shipping_type,
-                'cost'          => [
-                                     "amount" => $order->shipping_cost,
-                                     "symbol" => "SR"
-                                    ],
-            ],
-            'reason'            => "",
-            'subtotal'          => [
-                                      "amount" => $subTotal,
-                                      "symbol" => "SR"  
-                                    ],
-            'coupon_discount'   => [
-                                      "amount" => $couponDiscount,
-                                      "symbol" => "SR"  
-                                    ],
-            'tax'               => [
-                                      "amount" => $tax,
-                                      "symbol" => "SR"  
-                                    ],
-            'order_items'       => $orderItems
-        ]];
+        $data = $orders->map(function ($order) use ($referenceId, $subTotal, $couponDiscount, $tax, $orderItems) {
+            return [
+                    'reference_id'      => $referenceId,
+                    'order_code'        => (string)$order->id,
+                    'supplier'          => [
+                                            "id" => $order->seller->shop->id,
+                                            "slug" => $order->seller->shop->slug,
+                                            "user_id" => $order->seller->shop->user_id,
+                                            "name" => $order->seller->shop->name??"-",
+                                            'logo' => $order->seller->logo?'https://partners.arabianpay.net'.$order->seller->logo:'https://api.arabianpay.net/public/placeholder.jpg',
+                                            "cover" => $order->seller->banner?$order->seller->banner:'https://api.arabianpay.net/public/placeholder.jpg',
+                                            "rating" => $order->seller->shop->rating??0,
+                                        ],
+                    'status'            => [
+                                            "id" => 1,
+                                            "slug" => $order->general_status,
+                                            "name" => $order->general_status   
+                                            ],
+                    'total'             => [
+                                                "amount" => $order->grand_total,
+                                                "symbol" => "SR"
+                                            ],
+                    'order_date'        => date('d-m-Y', strtotime($order->created_at)),
+                    'shipping'          => [
+                        'type'          => $order->shipping_type,
+                        'cost'          => [
+                                            "amount" => $order->shipping_cost,
+                                            "symbol" => "SR"
+                                            ],
+                    ],
+                    'reason'            => "",
+                    'subtotal'          => [
+                                            "amount" => $subTotal,
+                                            "symbol" => "SR"  
+                                            ],
+                    'coupon_discount'   => [
+                                            "amount" => $couponDiscount,
+                                            "symbol" => "SR"  
+                                            ],
+                    'tax'               => [
+                                            "amount" => $tax,
+                                            "symbol" => "SR"  
+                                            ],
+                    'order_items'       => $orderItems
+                ];
+        })->toArray();
 
         $cart->items()->delete();
         $cart->delete();
