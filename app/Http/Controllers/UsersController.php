@@ -47,9 +47,9 @@ class UsersController extends Controller
             ->get()
             ->map(function ($tx) {
                 return [
-                    "transaction_id" => $tx->id,
-                    "reference_id" => $tx->reference_id,
-                    "name_shop" => $tx->store->name ?? '',
+                    "transaction_id" => $tx->uuid,
+                    "reference_id" => $tx->reference_id??'--',
+                    "name_shop" => $tx->store->name ?? '--',
                     "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
                         return [
                             "payment_id" => $sp->id,
