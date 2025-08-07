@@ -107,6 +107,8 @@ class ProductsController extends Controller
                 ->orWhere('category_id', $product->category_id);
             })
             ->where('published', 'published')
+            ->whereNotNull('name')
+            ->whereNotNull('thumbnail')
             ->take(10)
             ->get();
 
