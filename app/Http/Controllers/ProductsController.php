@@ -34,6 +34,7 @@ class ProductsController extends Controller
         ])
         ->with(['brand:id,name'])
         ->where('published', 'published')
+        ->whereNotNull('name')
         ->whereNotNull('thumbnail');
 
         // ✅ فلتر حسب الفئة (category_ids[])
