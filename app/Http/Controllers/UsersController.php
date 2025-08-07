@@ -168,7 +168,7 @@ class UsersController extends Controller
 
                     'schedule_payments' => $groupedPayments->map(function ($payment) {
                         return [
-                            'payment_id' => $payment->id,
+                            'payment_id' => $payment->uuid,
                             'reference_id' => $payment->reference_id,
                             'name_shop' => '', // optional – can omit or fill
                             'installment_number' => $payment->installment_number,
