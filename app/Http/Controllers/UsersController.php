@@ -52,7 +52,7 @@ class UsersController extends Controller
                     "name_shop" => $tx->store->name ?? '--',
                     "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
                         return [
-                            "payment_id" => $sp->id,
+                            "payment_id" => $sp->uuid,
                             "reference_id" => $sp->reference_id,
                             "name_shop" => "",
                             "installment_number" => $sp->installment_number,
