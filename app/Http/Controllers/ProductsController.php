@@ -12,7 +12,7 @@ use App\Models\Slider;
 use App\Traits\ApiResponseTrait;
 use Exception;
 use Illuminate\Http\JsonResponse;
-use Request;
+use Illuminate\Http\Request;
 
 class ProductsController extends Controller
 {
