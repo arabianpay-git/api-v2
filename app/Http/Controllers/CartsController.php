@@ -558,6 +558,7 @@ class CartsController extends Controller
                     'user_id' => $user->id,
                     'seller_id' => $supplierId,
                     'order_id' => $order->id,
+                    'transaction_id' => ,
                     'instalment_number' => ($i + 1),
                     'due_date' => now()->addDays((int)$intervalDays * ($i + 1)),
                     'instalment_amount' => $amountPerInstallment,

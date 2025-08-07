@@ -223,33 +223,66 @@ class ProductsController extends Controller
         ],'Product success');
     }
 
-    public function getProductFilters()
+    public function getProductFilters(Request $request)
     {
-        try{
-            // 1) Fetch brands: all published brands used in products
+        try {
+            $categoryIds = $request->input('category_id', []);
+            $brandIds = $request->input('brand_id', []);
+            $storeIds = $request->input('store_id', []);
+
+            // ========== 1) Brands ==========
             $brands = Brand::select('id', 'name')
-                ->whereHas('products') // if you only want brands with products
+                ->when(!empty($categoryIds) || !empty($storeIds), function ($q) use ($categoryIds, $storeIds) {
+                    $q->whereHas('products', function ($query) use ($categoryIds, $storeIds) {
+                        if (!empty($categoryIds)) {
+                            $query->whereIn('category_id', $categoryIds);
+                        }
+                        if (!empty($storeIds)) {
+                            $query->whereIn('user_id', $storeIds); // assuming store_id = user_id
+                        }
+                    });
+                })
                 ->orderBy('name')
                 ->get();
 
-            // 2) Fetch categories recursively with children
+            // ========== 2) Categories ==========
             $categories = Category::with(['childrenRecursive'])
                 ->where('parent_id', 0)
                 ->select('id', 'name', 'banner as image', 'parent_id')
+                ->when(!empty($brandIds) || !empty($storeIds), function ($q) use ($brandIds, $storeIds) {
+                    $q->whereHas('products', function ($query) use ($brandIds, $storeIds) {
+                        if (!empty($brandIds)) {
+                            $query->whereIn('brand_id', $brandIds);
+                        }
+                        if (!empty($storeIds)) {
+                            $query->whereIn('user_id', $storeIds); // store = user_id
+                        }
+                    });
+                })
                 ->get()
                 ->map(function ($category) {
                     return [
                         'id' => $category->id,
                         'name' => $category->name,
-                        'image' => $category->image ?'https://core.arabianpay.net'.$category->image:'https://api.arabianpay.net/public/placeholder.jpg',
+                        'image' => $category->image ? 'https://core.arabianpay.net' . $category->image : 'https://api.arabianpay.net/public/placeholder.jpg',
                         'parent_id' => $category->parent_id,
                         'children' => $this->mapChildren($category->childrenRecursive),
                     ];
                 });
 
-            // 3) Fetch stores from shops
-            $stores = ShopSetting::select('id', 'user_id', 'name', 'logo')
-                ->limit(50) // optional limit
+            // ========== 3) Stores ==========
+            $stores = ShopSetting::select('id', 'user_id', 'name', 'logo', 'banner')
+                ->when(!empty($categoryIds) || !empty($brandIds), function ($q) use ($categoryIds, $brandIds) {
+                    $q->whereHas('products', function ($query) use ($categoryIds, $brandIds) {
+                        if (!empty($categoryIds)) {
+                            $query->whereIn('category_id', $categoryIds);
+                        }
+                        if (!empty($brandIds)) {
+                            $query->whereIn('brand_id', $brandIds);
+                        }
+                    });
+                })
+                ->limit(50)
                 ->get()
                 ->map(function ($shop) {
                     return [
@@ -259,10 +292,11 @@ class ProductsController extends Controller
                         'name' => $shop->name,
                         'logo' => url($shop->logo),
                         'cover' => $this->fullImageUrl($shop->banner),
-                        'rating' => 0, // static or pull from review system
+                        'rating' => 0,
                     ];
                 });
 
+            // Return combined filter data
             $data = [
                 'brands' => $brands,
                 'categories' => $categories,
@@ -270,10 +304,11 @@ class ProductsController extends Controller
             ];
 
             return $this->returnData($data);
-        }catch(Exception $ex){
-            return $this->returnData([]);
+        } catch (\Exception $ex) {
+            return $this->returnData([], 'Error occurred', 500);
         }
     }
+
 
     /**
      * Helper to map nested category children recursively
