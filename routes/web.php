@@ -8,6 +8,8 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/test', [HomeController::class, 'test'])->name('test');
+
 Route::get('/enc', function () {
     return view('encryption');
 });

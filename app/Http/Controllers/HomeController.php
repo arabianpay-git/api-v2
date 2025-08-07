@@ -38,6 +38,23 @@ class HomeController extends Controller
         }
     }
 
+    public function test() {
+        $products = Product::where('name', 'REGEXP', '[أ-ي]')
+                    ->get();
+        
+        $nproducts = DB::table('products')
+                    ->where('name', 'REGEXP', '[أ-ي]')
+                    ->get();
+        
+        foreach($products as $index => $product){
+            //dd($products[$index]);
+            $product->name = $nproducts[$index]->name;
+            $product->save();
+        }
+        
+        return $nproducts;
+    }
+
     public function upload()
     {
         //$this->updateBrand();
@@ -344,9 +361,6 @@ class HomeController extends Controller
                 'rating',
                 'current_stock'
             ])
-            ->where('name','!=',"")
-            ->where('name','!=',null)
-            ->where('name','!='," ")
             ->with(['brand:id,name'])
             ->whereNotNull('name')
             ->where('thumbnail','!=',null)
@@ -367,7 +381,7 @@ class HomeController extends Controller
 
                 return [
                     'id' => $product->id,
-                    'name' => $product->name??'-',
+                    'name' => $product->name==""?$product->name:'-',
                     'brand' => $product->brand->name ?? 'عام',
                     'thumbnail_image' => !empty($product->thumbnail)?'https://partners.arabianpay.net'.$product->thumbnail:'https://api.arabianpay.net/public/placeholder.jpg',
                     'has_discount' => $discount > 0,
