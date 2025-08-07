@@ -424,7 +424,7 @@ class HomeController extends Controller
 
                 return [
                     'id' => $product->id,
-                    'name' => $product->name,
+                    'name' => $product->name??'-',
                     'brand' => $product->brand->name ?? 'عام',
                     'thumbnail_image' => !empty($product->thumbnail)?'https://partners.arabianpay.net'.$product->thumbnail:'https://api.arabianpay.net/public/placeholder.jpg',
                     'has_discount' => $discount > 0,
