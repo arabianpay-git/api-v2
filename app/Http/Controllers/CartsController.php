@@ -198,7 +198,7 @@ class CartsController extends Controller
                     'status' => false,
                     'errNum' => 'E404',
                     'msg' => 'Cart not found.',
-                    'data' => null
+                    'data' => []
                 ], 404);
             }
 
