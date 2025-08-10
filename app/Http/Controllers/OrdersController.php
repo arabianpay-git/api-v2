@@ -17,6 +17,7 @@ use Auth;
 use DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Str;
 
 class OrdersController extends Controller
@@ -205,27 +206,138 @@ class OrdersController extends Controller
     public function getPendingOrderDetails(Request $request)
     {
         $request->validate([
-            'order_id' => 'required|exists:orders,id',
+            'reference_id' => ['required','string','exists:orders,reference_id'],
         ]);
 
-        $order = Order::where('id', $request->order_id)
-            ->where('user_id', $request->user()->id)
-            ->where('payment_status', 'pending')
-            ->first();
+        $userId      = $request->user()->id;
+        $referenceId = $request->reference_id;
+        $symbol      = 'SR';
 
-        if (!$order) {
+        // اجلب كل الطلبات للمستخدم تحت نفس المرجع والحالة المعلقة
+        $orders = Order::query()
+            ->with(['seller', 'seller.shop']) // لو عندك علاقات
+            ->where('user_id', $userId)
+            ->where('reference_id', $referenceId)
+            ->where('payment_status', 'pending')   // أبقِها للطلبات المعلقة فقط
+            ->orderBy('id')
+            ->get();
+
+        if ($orders->isEmpty()) {
             return response()->json([
                 'status' => false,
                 'errNum' => 'E404',
-                'msg' => 'Pending order not found.',
+                'msg'    => 'Pending orders not found.',
             ], 404);
         }
+
+        // دالة تنسيق المبالغ كنص بدقتين عشريتين مع فواصل آلاف مثل "4,345.00"
+        $fmt = fn($v) => number_format((float)($v ?? 0), 2, '.', ',');
+
+        // سنبني النتيجة لكل Order
+        $data = $orders->map(function (Order $order) use ($symbol, $fmt, $referenceId) {
+
+            // --- Supplier ---
+            $supplier = [
+                'id'      => data_get($order, 'seller.shop.id', $order->seller_id),
+                'slug'    => (string) data_get($order, 'seller.shop.slug', ''),
+                'user_id' => data_get($order, 'seller.shop.user_id'),
+                'name'    => (string) data_get($order, 'seller.shop.name', ''),
+                'logo'    => (string) data_get($order, 'seller.logo', url('/public/assets/img/placeholder.jpg')),
+                'cover'   => (string) data_get($order, 'seller.banner', url('/public/assets/img/placeholder.jpg')),
+                'rating'  => (float)  data_get($order, 'seller.shop.rating', 0),
+            ];
+
+            // --- Status (من general_status أو delivery_status) ---
+            $slug = strtolower((string) ($order->general_status ?? $order->delivery_status ?? 'pending'));
+            $statusMap = [
+                'pending'   => 1,
+                'confirmed' => 2,
+                'processing'=> 3,
+                'shipped'   => 4,
+                'delivered' => 5,
+                'cancelled' => 10,
+                'canceled'  => 10,
+            ];
+            $status = [
+                'id'   => $statusMap[$slug] ?? null,
+                'slug' => $slug,
+                'name' => ucfirst($slug),
+            ];
+
+            // --- Items: من JSON داخل product_details + جلب بيانات المنتجات
+            $pd = is_array($order->product_details)
+                ? $order->product_details
+                : json_decode($order->product_details ?? '[]', true);
+
+            $items = [];
+            $subtotal = 0.0;
+
+            if (is_array($pd) && count($pd)) {
+                $productIds = collect($pd)->pluck('product_id')->filter()->unique()->values();
+                $products = $productIds->isNotEmpty()
+                    ? Product::whereIn('id', $productIds)->get(['id','name','short_description','description','thumbnail'])->keyBy('id')
+                    : collect();
+
+                foreach ($pd as $row) {
+                    $pid    = (int) ($row['product_id'] ?? 0);
+                    $qty    = (int) ($row['quantity'] ?? 0);
+                    $uPrice = (float) ($row['unit_price'] ?? 0);
+                    $tPrice = (float) ($row['total_price'] ?? ($uPrice * $qty));
+
+                    $p = $products->get($pid);
+                    $name = $p?->name ?? '-';
+                    $desc = $p?->short_description ?? $p?->description ?? '';
+                    $thumb= $p?->thumbnail ?? null;
+
+                    $items[] = [
+                        'id'              => $pid,
+                        'name'            => (string) $name,
+                        'description'     => (string) $desc,
+                        'thumbnail_image' => $thumb ? (str_starts_with($thumb, 'http') ? $thumb : url($thumb)) : url('/public/assets/img/placeholder.jpg'),
+                        'price' => [
+                            'amount' => $fmt($uPrice),
+                            'symbol' => $symbol,
+                        ],
+                        'quantity'        => $qty,
+                    ];
+
+                    $subtotal += $tPrice;
+                }
+            }
+
+            $shippingCost   = (float) ($order->shipping_cost ?? 0);
+            $couponDiscount = (float) ($order->coupon_discount ?? 0);
+            $tax            = 0.0; // لا يوجد عمود ضريبة في الجدول الحالي
+            $grandTotal     = (float) ($order->grand_total ?? ($subtotal + $tax + $shippingCost - $couponDiscount));
+
+            // reference_id ثابت لكل حزمة أوامر، و"order_code" يمكنك استخدام id أو invoice_number
+            $orderCode = $order->invoice_number ?: ('O-' . str_pad((string)$order->id, 6, '0', STR_PAD_LEFT));
+
+            return [
+                'reference_id' => $referenceId,
+                'order_code'   => (string) $orderCode,
+                'supplier'     => $supplier,
+                'status'       => $status,
+                'total'        => ['amount' => $fmt($grandTotal),     'symbol' => $symbol],
+                'order_date'   => optional($order->created_at)->format('d-m-Y'),
+                'shipping'     => [
+                    'type' => (string) ($order->shipping_type ?? ''),
+                    'cost' => ['amount' => $fmt($shippingCost), 'symbol' => $symbol],
+                ],
+                // اخترت المدينة كـ reason مثل العينة؛ غيّر المصدر لو عندك سبب إلغاء
+                'reason'          => (string) ($order->shipping_city ?? ''),
+                'subtotal'        => ['amount' => $fmt($subtotal),        'symbol' => $symbol],
+                'coupon_discount' => ['amount' => $fmt($couponDiscount),  'symbol' => $symbol],
+                'tax'             => ['amount' => $fmt($tax),             'symbol' => $symbol],
+                'order_items'     => $items,
+            ];
+        })->values()->all();
 
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'data' => $order
-        ]);
+            'data'   => $data, // مصفوفة من الطلبات تحت نفس reference_id
+        ], 200);
     }
 
     public function removePendingOrder(Request $request)
