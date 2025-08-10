@@ -333,11 +333,7 @@ class OrdersController extends Controller
             ];
         })->values()->all();
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'data'   => $data, // مصفوفة من الطلبات تحت نفس reference_id
-        ], 200);
+        $this->returnData($data,"get Pending order details successfully");
     }
 
     public function removePendingOrder(Request $request)
