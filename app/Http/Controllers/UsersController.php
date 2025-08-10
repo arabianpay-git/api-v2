@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\CustomerCreditLimit;
 use App\Models\Merchant;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\SchedulePayment;
 use App\Models\Shop;
@@ -201,6 +202,8 @@ class UsersController extends Controller
 
     public function getSpent(Request $request)
     {
+
+        $userId = $request->user()->id;
         $data = [
             'status' => true,
             'errNum' => 'S200',
@@ -208,39 +211,28 @@ class UsersController extends Controller
             'data' => [
                 'credit_limit' => [
                     'amount' => 5000,
-                    'currency' => 'SAR',
+                    'currency' => 'SR',
                 ],
                 'total_spent' => [
-                    'amount' => 1500,
-                    'currency' => 'SAR',
+                    'amount' => $this->getTotalSpentPrincipal($userId),
+                    'currency' => 'SR',
                 ],
                 'total_cate_purchases' => [
-                    [
-                        'category_id' => 1,
-                        'category_name' => 'Electronics',
-                        'amount' => 800,
-                        'currency' => 'SAR',
-                    ],
-                    [
-                        'category_id' => 2,
-                        'category_name' => 'Clothing',
-                        'amount' => 700,
-                        'currency' => 'SAR',
-                    ],
+                    $this->getCategoryPurchasesFromJson($userId)
                 ],
                 'monthly_spending_stats' => [
                     [
                         'date' => '2025-06',
                         'spent' => [
                             'amount' => 1000,
-                            'currency' => 'SAR',
+                            'currency' => 'SR',
                         ]
                     ],
                     [
                         'date' => '2025-07',
                         'spent' => [
                             'amount' => 500,
-                            'currency' => 'SAR',
+                            'currency' => 'SR',
                         ]
                     ]
                 ],
@@ -249,13 +241,13 @@ class UsersController extends Controller
                         'store_id' => 5,
                         'store_name' => 'Extra',
                         'amount_spent' => 600,
-                        'currency' => 'SAR',
+                        'currency' => 'SR',
                     ],
                     [
                         'store_id' => 9,
                         'store_name' => 'Jarir',
                         'amount_spent' => 400,
-                        'currency' => 'SAR',
+                        'currency' => 'SR',
                     ]
                 ]
             ]
@@ -263,6 +255,65 @@ class UsersController extends Controller
 
         return $this->returnData($data);
 
+    }
+
+    function getCategoryPurchasesFromJson(int $userId, string $currency = 'SR'): array
+    {
+        $orders = Order::query()
+            ->where('user_id', $userId)
+            ->where('general_status', 'done')   // عدّلها حسب حالتك
+            ->where('payment_status', 'paid')   // عدّلها حسب حالتك
+            ->get(['product_details']);
+
+        $totals = []; // [category_id => amount]
+
+        foreach ($orders as $order) {
+            $items = is_array($order->product_details)
+                ? $order->product_details
+                : json_decode($order->product_details, true);
+
+            if (!is_array($items)) continue;
+
+            foreach ($items as $it) {
+                $catId    = (int) ($it['category_id'] ?? 0);
+                $price    = (float) ($it['price'] ?? 0);
+                $qty      = (float) ($it['quantity'] ?? 0);
+                if ($catId <= 0 || $price <= 0 || $qty <= 0) continue;
+
+                $totals[$catId] = ($totals[$catId] ?? 0) + ($price * $qty);
+            }
+        }
+
+        if (empty($totals)) return [];
+
+        // جلب أسماء الفئات دفعة واحدة
+        $names = Category::whereIn('id', array_keys($totals))
+            ->pluck('name', 'id'); // أو name_ar لو تبغى العربي
+
+        // تجهيز الناتج بالشكل المطلوب
+        $out = [];
+        foreach ($totals as $catId => $amount) {
+            if ($amount <= 0) continue;
+            $out[] = [
+                'category_id'   => $catId,
+                'category_name' => (string) ($names[$catId] ?? 'Unknown'),
+                'amount'        => (float) $amount,
+                'currency'      => $currency,
+            ];
+        }
+
+        // ترتيب تنازليًا حسب المبلغ
+        usort($out, fn($a,$b) => $b['amount'] <=> $a['amount']);
+
+        return $out;
+    }
+
+    public function getTotalSpentPrincipal(int $userId): float
+    {
+        return (float) SchedulePayment::query()
+            ->where('user_id', $userId)
+            ->where('payment_status', 'paid')   // أو القيمة المطابقة في نظامك
+            ->sum('instalment_amount');
     }
     public function getCards(Request $request)
     {
