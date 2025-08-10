@@ -167,41 +167,34 @@ class OrdersController extends Controller
 
         $orders = Order::query()
             ->where('user_id', $request->user()->id)
-            ->where('payment_status', 'pending') // احذف هذا السطر إذا تبي نفس العيّنة اللي فيها null
+            ->where('payment_status', 'pending') // لو تبغى تضمّن NULL احذف هذا الشرط أو غيّره لبلوك where-orWhereNull
             ->orderByDesc('created_at')
             ->get([
-                'id', 'code', 'grand_total', 'coupon_discount', 'shipping_cost',
-                'shipping_type', 'created_at', 'payment_type', 'payment_status'
+                'id','reference_id','code','grand_total','coupon_discount','shipping_cost',
+                'shipping_type','created_at','payment_type','payment_status'
             ]);
 
-        $data = $orders->map(function ($o) use ($symbol) {
-            // استخدم code إن وجد (مثل AP-100042)، وإلا كوّن واحد احتياطيًا
-            $orderId = $o->code ?: ('AP-' . str_pad((string)$o->id, 6, '0', STR_PAD_LEFT));
-            $fmt = fn($v) => number_format((float)($v ?? 0), 2, '.', '');
+        $fmt = fn($v) => number_format((float)($v ?? 0), 2, '.', '');
+
+        $data = $orders->map(function ($o) use ($symbol, $fmt) {
+            // اجعل order_id = reference_id مع fallback احتياطي لو كان null
+            $orderId = $o->reference_id ?: ($o->code ?: ('AP-' . (10000 + (int)$o->id)));
 
             return [
-                'order_id' => $orderId,
-                'grand_total' => [
-                    'amount' => $fmt($o->grand_total),
-                    'symbol' => $symbol,
-                ],
-                'coupon_discount' => [
-                    'amount' => $fmt($o->coupon_discount),
-                    'symbol' => $symbol,
-                ],
-                'shipping_cost' => [
-                    'amount' => $fmt($o->shipping_cost),
-                    'symbol' => $symbol,
-                ],
+                'order_id'        => (string) $orderId,
+                'grand_total'     => ['amount' => $fmt($o->grand_total),     'symbol' => $symbol],
+                'coupon_discount' => ['amount' => $fmt($o->coupon_discount), 'symbol' => $symbol],
+                'shipping_cost'   => ['amount' => $fmt($o->shipping_cost),   'symbol' => $symbol],
                 'shipping_method' => (string) ($o->shipping_type ?? ''),
-                'date' => optional($o->created_at)->format('Y-m-d H:i:s'),
-                'payment_type' => $o->payment_type,
-                'payment_status' => $o->payment_status,
+                'date'            => optional($o->created_at)->format('Y-m-d H:i:s'),
+                'payment_type'    => $o->payment_type,
+                'payment_status'  => $o->payment_status,
             ];
         })->values();
 
-        return $this->returnData($data,'Pending orders returned successfully');
+        return $this->returnData($data, 'Pending orders returned successfully');
     }
+
 
     public function getPendingOrderDetails(Request $request)
     {
