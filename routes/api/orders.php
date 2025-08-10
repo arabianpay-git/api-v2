@@ -11,6 +11,6 @@ Route::prefix('v2/orders/')->middleware(['auth:sanctum', 'sanctum.auth.json'])->
 
 Route::prefix('v2/orders/pending')->middleware(['auth:sanctum', 'sanctum.auth.json'])->group(function () {
     Route::get('get', [OrdersController::class, 'getPendingOrders']);
-    Route::get('details', [OrdersController::class, 'getPendingOrderDetails']);
+    Route::get('details/{referenceId}', [OrdersController::class, 'getPendingOrderDetails']);
     Route::post('remove', [OrdersController::class, 'removePendingOrder']);
 });

@@ -196,14 +196,9 @@ class OrdersController extends Controller
     }
 
 
-    public function getPendingOrderDetails(Request $request)
+    public function getPendingOrderDetails(Request $request,$referenceId)
     {
-        $request->validate([
-            'reference_id' => ['required','string','exists:orders,reference_id'],
-        ]);
-
         $userId      = $request->user()->id;
-        $referenceId = $request->reference_id;
         $symbol      = 'SR';
 
         // اجلب كل الطلبات للمستخدم تحت نفس المرجع والحالة المعلقة
