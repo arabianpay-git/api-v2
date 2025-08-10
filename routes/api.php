@@ -31,3 +31,4 @@ require __DIR__.'/api/search.php';
 require __DIR__.'/api/notifications.php';
 require __DIR__.'/api/wishlists.php';
 require __DIR__.'/api/followed.php';
+require __DIR__.'/api/clickpay.php';
