@@ -258,15 +258,51 @@ class OrdersController extends Controller
 
     public function getOrders(Request $request)
     {
-        $orders = Order::where('user_id', $request->user()->id)
+        $symbol = 'SR';
+
+        $orders = Order::query()
+            ->where('user_id', $request->user()->id)
             ->orderByDesc('created_at')
-            ->get();
+            ->get([
+                'id', 'code', 'grand_total', 'coupon_discount', 'shipping_cost',
+                'shipping_type', 'created_at', 'payment_type', 'payment_status'
+            ]);
+
+        $fmt = fn($v) => number_format((float)($v ?? 0), 2, '.', '');
+
+        $data = $orders->map(function ($o) use ($symbol, $fmt) {
+            // Use 'code' if present (e.g., "AP-10005"); otherwise build a fallback
+            $orderId = $o->code ?: ('AP-' . str_pad((string)$o->id, 5, '0', STR_PAD_LEFT));
+
+            return [
+                'order_id' => $orderId,
+                'grand_total' => [
+                    'amount' => $fmt($o->grand_total),
+                    'symbol' => $symbol,
+                ],
+                'coupon_discount' => [
+                    'amount' => $fmt($o->coupon_discount),
+                    'symbol' => $symbol,
+                ],
+                'shipping_cost' => [
+                    'amount' => $fmt($o->shipping_cost),
+                    'symbol' => $symbol,
+                ],
+                'shipping_method' => (string) ($o->shipping_type ?? ''),
+                'date' => optional($o->created_at)->format('Y-m-d H:i:s'),
+                'payment_type' => $o->payment_type,
+                'payment_status' => $o->payment_status,
+            ];
+        })->values();
 
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'data' => $orders
-        ]);
+            'data' => $data,
+        ], 200);
+
+        // If you want to return ONLY the array (without wrapper), do:
+        // return response()->json($data, 200);
     }
 
     public function getOrderDetails(Request $request, $id)
