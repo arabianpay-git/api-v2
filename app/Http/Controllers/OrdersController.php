@@ -295,11 +295,7 @@ class OrdersController extends Controller
             ];
         })->values();
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'data' => $data,
-        ], 200);
+        return $this->returnData($data,"Orders returned successfully");
 
         // If you want to return ONLY the array (without wrapper), do:
         // return response()->json($data, 200);
