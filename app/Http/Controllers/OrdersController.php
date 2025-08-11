@@ -366,7 +366,7 @@ class OrdersController extends Controller
             ->where('user_id', $request->user()->id)
             ->orderByDesc('created_at')
             ->get([
-                'id', 'code', 'grand_total', 'coupon_discount', 'shipping_cost',
+                'id','reference_id','code', 'grand_total', 'coupon_discount', 'shipping_cost',
                 'shipping_type', 'created_at', 'payment_type', 'payment_status'
             ]);
 
