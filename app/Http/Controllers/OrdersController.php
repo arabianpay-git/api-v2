@@ -405,7 +405,7 @@ class OrdersController extends Controller
     public function getOrderDetails(Request $request, $id)
     {
         $order = Order::query()
-            ->where('id', $id)
+            ->where('reference_id', $id)
             ->where('user_id', $request->user()->id)
             ->first([
                 'id','reference_id','code','invoice_number','seller_id','product_details',
