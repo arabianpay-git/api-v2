@@ -405,23 +405,130 @@ class OrdersController extends Controller
 
     public function getOrderDetails(Request $request, $id)
     {
-        $order = Order::where('id', $id)
+        $order = Order::query()
+            ->where('id', $id)
             ->where('user_id', $request->user()->id)
-            ->first();
+            ->first([
+                'id','reference_id','code','invoice_number','seller_id','product_details',
+                'shipping_first_name','shipping_last_name','shipping_address_line1','shipping_address_line2',
+                'shipping_city','shipping_state','shipping_country','shipping_type','shipping_cost',
+                'coupon_discount','grand_total','delivery_status','payment_type','created_at'
+            ]);
 
         if (!$order) {
             return response()->json([
                 'status' => false,
                 'errNum' => 'E404',
-                'msg' => 'Order not found.',
+                'msg'    => 'Order not found.',
             ], 404);
         }
 
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'data' => $order
-        ]);
+        $symbol = 'SR';
+        $fmt = fn($v) => number_format((float)($v ?? 0), 2, '.', ',');
+
+        // --- Decode items from JSON and hydrate product info
+        $pd = is_array($order->product_details)
+            ? $order->product_details
+            : json_decode($order->product_details ?? '[]', true);
+
+        $items = [];
+        $subtotal = 0.0;
+
+        if (is_array($pd) && count($pd)) {
+            $productIds = collect($pd)->pluck('product_id')->filter()->unique();
+            $products = $productIds->isNotEmpty()
+                ? Product::whereIn('id', $productIds)->get(['id','name','short_description','description','thumbnail'])->keyBy('id')
+                : collect();
+
+            foreach ($pd as $row) {
+                $pid    = (int) ($row['product_id'] ?? 0);
+                $qty    = (int) ($row['quantity'] ?? 0);
+                $uPrice = (float) ($row['unit_price'] ?? 0);
+                $tPrice = (float) ($row['total_price'] ?? ($uPrice * $qty));
+
+                $p = $products->get($pid);
+                $name = $p?->name ?? '-';
+                $desc = $p?->short_description ?? $p?->description ?? '';
+                $thumb= $p?->thumbnail ?? null;
+
+                $items[] = [
+                    'id'              => $pid,
+                    'name'            => (string) $name,
+                    'description'     => (string) $desc,
+                    'thumbnail_image' => $thumb ? (str_starts_with($thumb, 'http') ? $thumb : url($thumb)) : url('/public/assets/img/placeholder.jpg'),
+                    'price' => [
+                        'amount' => $fmt($uPrice),
+                        'symbol' => $symbol,
+                    ],
+                    'quantity'        => $qty,
+                ];
+
+                $subtotal += $tPrice;
+            }
+        }
+
+        $shippingCost   = (float) ($order->shipping_cost ?? 0);
+        $couponDiscount = (float) ($order->coupon_discount ?? 0);
+        $tax            = 0.0; // لا يوجد عمود ضريبة حالياً
+        $grandTotal     = (float) ($order->grand_total ?? ($subtotal + $tax + $shippingCost - $couponDiscount));
+        $subscriptionFee= max(0.0, $grandTotal - ($subtotal + $tax + $shippingCost - $couponDiscount));
+
+        // إجمالي المدفوع من schedule_payments (paid)
+        $amountPaid = (float) SchedulePayment::query()
+            ->where('order_id', $order->id)
+            ->where('payment_status', 'paid')
+            ->sum(DB::raw('CASE WHEN COALESCE(deducted_amount,0) > 0 THEN deducted_amount ELSE instalment_amount END'));
+
+        // مخرجات الهوية
+        $orderIdOut = $order->code ?: ($order->reference_id ?: ('AP-' . str_pad((string)$order->id, 5, '0', STR_PAD_LEFT)));
+        $orderCode  = $order->invoice_number ?: ('O-'  . str_pad((string)$order->id, 5, '0', STR_PAD_LEFT));
+
+        // Supplier (fallbacks بسيطة لو ما عندك علاقات محملة)
+        $supplier = [
+            'id'      => data_get($order, 'seller.shop.id', $order->seller_id),
+            'slug'    => (string) data_get($order, 'seller.shop.slug', ''),
+            'user_id' => data_get($order, 'seller.shop.user_id'),
+            'name'    => (string) data_get($order, 'seller.shop.name', ''),
+            'logo'    => (string) data_get($order, 'seller.logo', url('/public/assets/img/placeholder.jpg')),
+            'cover'   => (string) data_get($order, 'seller.banner', url('/public/assets/img/placeholder.jpg')),
+            'rating'  => (float)  data_get($order, 'seller.shop.rating', 0),
+        ];
+
+        $payload = [
+            'order_id' => (string) $orderIdOut,
+            'shipping_address' => [
+                'name'    => trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: null,
+                'address' => trim(($order->shipping_address_line1 ?? '') . (isset($order->shipping_address_line2) ? ' - '.$order->shipping_address_line2 : '')),
+                'country' => (string) ($order->shipping_country ?? ''),
+                'state'   => (string) ($order->shipping_state ?? ''),
+                'city'    => (string) ($order->shipping_city ?? ''),
+                'phone'   => (string) ($order->shipping_phone ?? ($request->user()->phone ?? '')),
+            ],
+            'grand_total'      => ['amount' => $fmt($grandTotal),      'symbol' => $symbol],
+            'coupon_discount'  => ['amount' => $fmt($couponDiscount),   'symbol' => $symbol],
+            'shipping_cost'    => ['amount' => $fmt($shippingCost),     'symbol' => $symbol],
+            'shipping_method'  => (string) ($order->shipping_type ?? ''),
+            'sub_total'        => ['amount' => $fmt($subtotal),         'symbol' => $symbol],
+            'date'             => optional($order->created_at)->format('Y-m-d H:i:s'),
+            'payment_type'     => $order->payment_type,
+            'subscription_fee' => ['amount' => $fmt($subscriptionFee),  'symbol' => $symbol],
+            'amount_paid'      => ['amount' => $fmt($amountPaid),       'symbol' => $symbol],
+            'orders' => [[
+                'order_code'     => (string) $orderCode,
+                'supplier'       => $supplier,
+                'total'          => ['amount' => $fmt($grandTotal),     'symbol' => $symbol],
+                'order_date'     => optional($order->created_at)->format('d-m-Y'),
+                'delivery_status'=> (string) ($order->delivery_status ?? ''),
+                'shipping_type'  => (string) ($order->shipping_type ?? ''),
+                'shipping_cost'  => ['amount' => $fmt($shippingCost),   'symbol' => $symbol],
+                'subtotal'       => ['amount' => $fmt($subtotal),       'symbol' => $symbol],
+                'coupon_discount'=> ['amount' => $fmt($couponDiscount), 'symbol' => $symbol],
+                'tax'            => ['amount' => $fmt($tax),            'symbol' => $symbol],
+                'order_items'    => $items,
+            ]],
+        ];
+
+        return $this->returnData($payload);
     }
     
     public function cancelOrder(Request $request,$id)
