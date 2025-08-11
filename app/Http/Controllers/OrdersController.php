@@ -374,7 +374,7 @@ class OrdersController extends Controller
 
         $data = $orders->map(function ($o) use ($symbol, $fmt) {
             // Use 'code' if present (e.g., "AP-10005"); otherwise build a fallback
-            $orderId = $o->reference_id ?: ($o->code ?: ('AP-' . (10000 + (int)$o->id)));
+            $orderId = $o->reference_id;
             return [
                 'order_id' => $orderId,
                 'grand_total' => [
