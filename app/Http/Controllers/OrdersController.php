@@ -196,19 +196,23 @@ class OrdersController extends Controller
     }
 
 
-    public function getPendingOrderDetails(Request $request,$referenceId)
+    public function getPendingOrderDetails(Request $request, string $referenceId)
     {
-        $userId      = $request->user()->id;
-        $symbol      = 'SR';
+        $userId = $request->user()->id;
+        $symbol = 'SR';
 
-        // اجلب كل الطلبات للمستخدم تحت نفس المرجع والحالة المعلقة
+        // اجلب كل الطلبات لنفس المرجع وحالة الدفع pending
         $orders = Order::query()
-            ->with(['seller', 'seller.shop']) // لو عندك علاقات
+            ->with(['seller', 'seller.shop']) // لو العلاقات موجودة
             ->where('user_id', $userId)
             ->where('reference_id', $referenceId)
-            ->where('payment_status', 'pending')   // أبقِها للطلبات المعلقة فقط
+            ->where('payment_status', 'pending')
             ->orderBy('id')
-            ->get();
+            ->get([
+                'id','reference_id','invoice_number','seller_id','product_details',
+                'shipping_type','shipping_cost','coupon_discount','grand_total',
+                'shipping_city','general_status','delivery_status','created_at'
+            ]);
 
         if ($orders->isEmpty()) {
             return response()->json([
@@ -218,13 +222,12 @@ class OrdersController extends Controller
             ], 404);
         }
 
-        // دالة تنسيق المبالغ كنص بدقتين عشريتين مع فواصل آلاف مثل "4,345.00"
+        // تنسيق مبالغ مثل "4,345.00"
         $fmt = fn($v) => number_format((float)($v ?? 0), 2, '.', ',');
 
-        // سنبني النتيجة لكل Order
         $data = $orders->map(function (Order $order) use ($symbol, $fmt, $referenceId) {
 
-            // --- Supplier ---
+            // Supplier
             $supplier = [
                 'id'      => data_get($order, 'seller.shop.id', $order->seller_id),
                 'slug'    => (string) data_get($order, 'seller.shop.slug', ''),
@@ -235,7 +238,7 @@ class OrdersController extends Controller
                 'rating'  => (float)  data_get($order, 'seller.shop.rating', 0),
             ];
 
-            // --- Status (من general_status أو delivery_status) ---
+            // Status
             $slug = strtolower((string) ($order->general_status ?? $order->delivery_status ?? 'pending'));
             $statusMap = [
                 'pending'   => 1,
@@ -252,7 +255,7 @@ class OrdersController extends Controller
                 'name' => ucfirst($slug),
             ];
 
-            // --- Items: من JSON داخل product_details + جلب بيانات المنتجات
+            // Items من JSON داخل product_details + جلب بيانات المنتجات
             $pd = is_array($order->product_details)
                 ? $order->product_details
                 : json_decode($order->product_details ?? '[]', true);
@@ -295,14 +298,13 @@ class OrdersController extends Controller
 
             $shippingCost   = (float) ($order->shipping_cost ?? 0);
             $couponDiscount = (float) ($order->coupon_discount ?? 0);
-            $tax            = 0.0; // لا يوجد عمود ضريبة في الجدول الحالي
+            $tax            = 0.0; // لا يوجد عمود ضريبة
             $grandTotal     = (float) ($order->grand_total ?? ($subtotal + $tax + $shippingCost - $couponDiscount));
 
-            // reference_id ثابت لكل حزمة أوامر، و"order_code" يمكنك استخدام id أو invoice_number
             $orderCode = $order->invoice_number ?: ('O-' . str_pad((string)$order->id, 6, '0', STR_PAD_LEFT));
 
             return [
-                'reference_id' => $referenceId,
+                'reference_id' => (string) $referenceId,
                 'order_code'   => (string) $orderCode,
                 'supplier'     => $supplier,
                 'status'       => $status,
@@ -312,7 +314,7 @@ class OrdersController extends Controller
                     'type' => (string) ($order->shipping_type ?? ''),
                     'cost' => ['amount' => $fmt($shippingCost), 'symbol' => $symbol],
                 ],
-                // اخترت المدينة كـ reason مثل العينة؛ غيّر المصدر لو عندك سبب إلغاء
+                // مثل العينة: استخدم المدينة كـ reason (غيّرها لمصدر سبب الإلغاء لو عندك)
                 'reason'          => (string) ($order->shipping_city ?? ''),
                 'subtotal'        => ['amount' => $fmt($subtotal),        'symbol' => $symbol],
                 'coupon_discount' => ['amount' => $fmt($couponDiscount),  'symbol' => $symbol],
@@ -321,7 +323,11 @@ class OrdersController extends Controller
             ];
         })->values()->all();
 
-        $this->returnData($data,"get Pending order details successfully");
+        // إن كنت تستخدم returnData():
+        return $this->returnData($data, "get Pending order details successfully");
+
+        // أو JSON عادي:
+        // return response()->json(['status'=>true,'errNum'=>'S200','data'=>$data], 200);
     }
 
     public function removePendingOrder(Request $request)
