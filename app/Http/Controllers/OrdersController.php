@@ -501,7 +501,7 @@ class OrdersController extends Controller
                 'country' => (string) ($order->shipping_country ?? ''),
                 'state'   => (string) ($order->shipping_state ?? ''),
                 'city'    => (string) ($order->shipping_city ?? ''),
-                'phone'   => (string) ($order->shipping_phone ?? ($request->user()->phone_number ?? '')),
+                'phone'   => (string) ($order->shipping_phone ?? ($request->user()->phone_number ?? '0551011969')),
             ],
             'grand_total'      => ['amount' => $fmt($grandTotal),      'symbol' => $symbol],
             'coupon_discount'  => ['amount' => $fmt($couponDiscount),   'symbol' => $symbol],
