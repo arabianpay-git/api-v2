@@ -5,7 +5,7 @@ Route::prefix('v2/orders/')->middleware(['auth:sanctum', 'sanctum.auth.json'])->
     Route::post('store', [OrdersController::class, 'sendOrder']);
     Route::get('get-orders', [OrdersController::class, 'getOrders']);
     Route::get('order-details/{id}', [OrdersController::class, 'getOrderDetails']);
-    Route::get('get-address/{id}', [OrdersController::class, 'getAddress']); 
+    Route::get('get-address/{referenceId}', [OrdersController::class, 'getAddress']); 
     Route::post('cancel/{id}', [OrdersController::class, 'cancelOrder']);
 });
 
