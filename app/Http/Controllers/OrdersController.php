@@ -485,7 +485,7 @@ class OrdersController extends Controller
         // Supplier (fallbacks بسيطة لو ما عندك علاقات محملة)
         $supplier = [
             'id'      => data_get($order, 'seller.shop.id', $order->seller_id),
-            'slug'    => (string) data_get($order, 'seller.shop.slug', ''),
+            'slug'    => (string) data_get($order, 'seller.shop.slug', '--'),
             'user_id' => data_get($order, 'seller.shop.user_id'),
             'name'    => (string) data_get($order, 'seller.shop.name', ''),
             'logo'    => (string) data_get($order, 'seller.logo', url('/public/assets/img/placeholder.jpg')),
@@ -506,7 +506,7 @@ class OrdersController extends Controller
             'grand_total'      => ['amount' => $fmt($grandTotal),      'symbol' => $symbol],
             'coupon_discount'  => ['amount' => $fmt($couponDiscount),   'symbol' => $symbol],
             'shipping_cost'    => ['amount' => $fmt($shippingCost),     'symbol' => $symbol],
-            'shipping_method'  => (string) ($order->shipping_type ?? ''),
+            'shipping_method'  => "",
             'sub_total'        => ['amount' => $fmt($subtotal),         'symbol' => $symbol],
             'date'             => optional($order->created_at)->format('Y-m-d H:i:s'),
             'payment_type'     => $order->payment_type,
