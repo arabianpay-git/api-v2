@@ -154,52 +154,98 @@ class UsersController extends Controller
     {
         $userId = $request->user()->id;
 
-        // Load payments with their transaction and merchant/shop relationship
-        $payments = SchedulePayment::with(['transaction', 'transaction.shop'])
+        // اجلب مدفوعات المستخدم
+        $rows = SchedulePayment::query()
             ->where('user_id', $userId)
-            ->get()
-            ->groupBy('transaction_id')
-            ->map(function ($groupedPayments, $transactionId) {
-                $transaction = $groupedPayments->first()->transaction;
+            ->whereNotNull('transaction_id')  // لضمان التجميع
+            ->orderBy('transaction_id')
+            ->orderBy('instalment_number')
+            ->get([
+                'uuid',
+                'transaction_id',   // هذا هو المرجع النصّي لديك
+                'order_id',
+                'seller_id',
+                'instalment_number',
+                'due_date',
+                'instalment_amount',
+                'late_fee',
+                'payment_status',
+            ]);
+
+        if ($rows->isEmpty()) {
+            return $this->returnData([], 'No payments found');
+        }
+
+        // جهّز أسماء المتاجر لكل reference_id (transaction_id في schedule_payments)
+        $refIds = $rows->pluck('transaction_id')->filter()->unique()->values();
+        $shopsByRef = Order::query()
+            ->with(['seller', 'seller.shop']) // إن توفرت العلاقات
+            ->whereIn('reference_id', $refIds)
+            ->get(['id','reference_id','seller_id'])
+            ->groupBy('reference_id')
+            ->map(fn ($g) => (string) data_get($g->first(), 'seller.shop.name', ''));
+
+        $fmt = fn($v) => number_format((float)($v ?? 0), 2, '.', '');
+
+        $payments = $rows->groupBy('transaction_id')
+            ->map(function ($group, $ref) use ($shopsByRef, $fmt) {
+                $shopName = (string) ($shopsByRef[$ref] ?? '');
+
+                $schedule = $group->map(function ($p) use ($fmt) {
+                    $due = $p->due_date ? Carbon::parse($p->due_date) : null;
+
+                    return [
+                        'payment_id'         => (string) $p->uuid,
+                        'reference_id'       => (string) $p->transaction_id, // نفس المرجع
+                        'name_shop'          => '', // يمكن تعبئته إن رغبت على مستوى القسط
+                        'installment_number' => (int) $p->instalment_number,
+                        // اعتبر القسط الحالي = نفس الشهر ولم يُدفع
+                        'current_installment'=> $due ? ($p->payment_status !== 'paid' && $due->isCurrentMonth()) : false,
+                        'date'               => $due ? $due->translatedFormat('M d, Y') : null,
+                        'amount'             => [
+                            'amount' => $fmt($p->instalment_amount),
+                            'symbol' => 'SR',
+                        ],
+                        'late_fee'           => [
+                            'amount' => $fmt($p->late_fee),
+                            'symbol' => 'SR',
+                        ],
+                        'status'             => [
+                            'name' => $this->mapPaymentStatus($p->payment_status),
+                            'slug' => (string) $p->payment_status,
+                        ],
+                    ];
+                })->values();
 
                 return [
-                    'transaction_id' => $transactionId,
-                    'reference_id' => $transaction->reference_id ?? '',
-                    'name_shop' => $transaction->shop->name ?? '',
-
-                    'schedule_payments' => $groupedPayments->map(function ($payment) {
-                        return [
-                            'payment_id' => $payment->uuid,
-                            'reference_id' => $payment->reference_id,
-                            'name_shop' => '', // optional – can omit or fill
-                            'installment_number' => $payment->installment_number,
-                            'current_installment' => $payment->start_date && $payment->due_date
-                                                    ? now()->between($payment->start_date, $payment->due_date)
-                                                    : false,
-                            'date' => \Carbon\Carbon::parse($payment->due_date)->translatedFormat('M d, Y'),
-
-                            'amount' => [
-                                'amount' => number_format($payment->amount, 2),
-                                'symbol' => 'SR',
-                            ],
-                            'late_fee' => [
-                                'amount' => number_format($payment->late_fee ?? 0, 2),
-                                'symbol' => 'SR',
-                            ],
-                            'status' => [
-                                'name' => $this->getStatusName($payment->status), // translate status
-                                'slug' => $payment->status,
-                            ],
-                        ];
-                    })->values(),
+                    'transaction_id'    => (string) $ref,     // تجميعة المجموعة
+                    'reference_id'      => (string) $ref,     // نفس الحقل للحفاظ على الشكل
+                    'name_shop'         => $shopName,         // اسم المتجر على مستوى المجموعة
+                    'schedule_payments' => $schedule,
                 ];
             })
             ->values();
 
-            return $this->returnData($payments);
-
+        return $this->returnData($payments, 'Payments fetched successfully');
     }
 
+    /**
+     * خرائط أسماء الحالات لعرض ودّي
+     */
+    private function mapPaymentStatus(?string $slug): string
+    {
+        $s = strtolower((string) $slug);
+        return match ($s) {
+            'paid'      => 'Paid',
+            'pending'   => 'Pending',
+            'failed'    => 'Failed',
+            'on_hold',
+            'hold'      => 'On Hold',
+            'canceled',
+            'cancelled' => 'Canceled',
+            default     => ucfirst($s ?: 'Unknown'),
+        };
+    }
     public function getSpent(Request $request)
     {
 
