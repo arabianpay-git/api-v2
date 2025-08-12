@@ -607,8 +607,8 @@ class OrdersController extends Controller
             'city'            => (string) ($order->shipping_city ?? ''),
             'postal_code'     => $order->shipping_postal_code,
             'phone'           => $phone ? (string) $phone : null, // لا يوجد عمود هاتف في orders
-            'latitude'        => "21.762632369995117", // لا توجد أعمدة إحداثيات في الجدول الحالي
-            'longitude'       => "21.762632369995117",
+            'latitude'        => 21.762632369995117, // لا توجد أعمدة إحداثيات في الجدول الحالي
+            'longitude'       => 21.762632369995117,
         ];
 
     
