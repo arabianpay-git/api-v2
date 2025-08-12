@@ -390,17 +390,164 @@ class UsersController extends Controller
 
     }
 
-    public function getPaymentDetails(Request $request, $uuid)
+    public function getPaymentDetails(Request $request, string $uuid)
     {
-        // Fetch payment details by UUID
-        $payment = SchedulePayment::where('uuid', $uuid)->first();
+        $symbol = 'SR';
+        $fmt    = fn($v) => number_format((float)($v ?? 0), 2, '.', ','); // "4,345.00"
+
+        // 1) القسط المطلوب
+        $payment = SchedulePayment::where('uuid', $uuid)->first([
+            'id','uuid','order_id','transaction_id','user_id','seller_id',
+            'instalment_number','due_date','instalment_amount','late_fee',
+            'subscription_fee','payment_status'
+        ]);
 
         if (!$payment) {
-            return response()->json(['error' => 'Payment not found'], 404);
+            return response()->json(['status'=>false, 'errNum'=>'E404', 'msg'=>'Payment not found'], 404);
         }
 
-        return $this->returnData($payment);
+        // 2) الطلب المرتبط
+        $order = Order::where('id', $payment->order_id)->first([
+            'id','code','reference_id','invoice_number','product_details',
+            'shipping_first_name','shipping_last_name','shipping_address_line1','shipping_address_line2',
+            'shipping_city','shipping_state','shipping_country',
+            'shipping_type','shipping_cost','coupon_discount',
+            'grand_total','delivery_status','payment_type','created_at',
+            'seller_id'
+        ]);
+
+        if (!$order) {
+            return response()->json(['status'=>false, 'errNum'=>'E404', 'msg'=>'Order not found'], 404);
+        }
+
+        // 3) اسم المتجر (لو عندك علاقات shop على البائع، بدّل بجلب العلاقة)
+        $shopName = (string) data_get($order, 'seller.shop.name', '');
+
+        // 4) عناصر الطلب (من JSON داخل orders.product_details + ترطيب بيانات المنتجات)
+        $pd = is_array($order->product_details)
+            ? $order->product_details
+            : json_decode($order->product_details ?? '[]', true);
+
+        $orderItems = [];
+        $subTotal   = 0.0;
+
+        if (is_array($pd) && count($pd)) {
+            $productIds = collect($pd)->pluck('product_id')->filter()->unique();
+            $products   = $productIds->isNotEmpty()
+                ? Product::whereIn('id', $productIds)->get(['id','name','short_description','description','thumbnail'])->keyBy('id')
+                : collect();
+
+            foreach ($pd as $row) {
+                $pid    = (int) ($row['product_id'] ?? 0);
+                $qty    = (int) ($row['quantity'] ?? 0);
+                $uPrice = (float) ($row['unit_price'] ?? 0);
+                $tPrice = (float) ($row['total_price'] ?? ($uPrice * $qty));
+
+                $p    = $products->get($pid);
+                $name = $p?->name ?? '-';
+                $desc = $p?->short_description ?? $p?->description ?? '';
+                $thumb= $p?->thumbnail ?? null;
+
+                $orderItems[] = [
+                    'id'              => $pid,
+                    'name'            => (string) $name,
+                    'description'     => (string) $desc,
+                    'thumbnail_image' => $thumb ? (str_starts_with($thumb, 'http') ? $thumb : url($thumb)) : url('/public/assets/img/placeholder.jpg'),
+                    'price'           => ['amount' => $fmt($uPrice), 'symbol' => $symbol],
+                    'quantity'        => $qty,
+                ];
+                $subTotal += $tPrice;
+            }
+        }
+
+        // 5) قائمة الأقساط لنفس الطلب (payment_list)
+        $allPayments = SchedulePayment::where('order_id', $order->id)
+            ->orderBy('instalment_number')
+            ->get([
+                'id','uuid','transaction_id','instalment_number','due_date',
+                'instalment_amount','late_fee','payment_status'
+            ]);
+
+        // تحديد القسط الحالي: أول قسط غير مدفوع وتاريخه >= اليوم
+        $now = Carbon::now();
+        $firstUpcomingUuid = optional(
+            $allPayments->first(function ($p) use ($now) {
+                return $p->payment_status !== 'paid' && $p->due_date && Carbon::parse($p->due_date)->gte($now);
+            })
+        )->uuid;
+
+        $paymentList = $allPayments->map(function ($p) use ($fmt, $symbol, $now, $firstUpcomingUuid) {
+            $due = $p->due_date ? Carbon::parse($p->due_date) : null;
+
+            // تحديد الاسم المعروض للحالة (عربي) والسلاق المناسب
+            [$nameAr, $slug] = (function() use ($p, $due, $now, $firstUpcomingUuid) {
+                if ($p->payment_status === 'paid') return ['مدفوع', 'paid'];
+                if ($due && $due->lt($now))       return ['مستحقة', 'outstanding']; // متأخرة/مستحقة
+                if ($p->uuid === $firstUpcomingUuid) return ['مستحقة', 'outstanding']; // القسط القادم
+                return ['قيد الانتظار', 'pending'];
+            })();
+
+            return [
+                'payment_id'         => (string) $p->uuid,
+                // "reference_id" في العينة أرقام؛ سنستخدم المعرف الرقمي لسجل القسط:
+                'reference_id'       => (int) $p->id,
+                'name_shop'          => '',
+                'installment_number' => (int) $p->instalment_number,
+                'current_installment'=> ($p->uuid === $firstUpcomingUuid),
+                'date'               => $due ? $due->format('M d, Y') : null,
+                'amount'             => ['amount' => $fmt($p->instalment_amount), 'symbol' => $symbol],
+                'late_fee'           => ['amount' => $fmt($p->late_fee),          'symbol' => $symbol],
+                'status'             => ['name' => $nameAr, 'slug' => $slug],
+            ];
+        })->values();
+
+        // 6) ملخص الفاتورة (bill_details)
+        $grandTotal   = (float) ($order->grand_total ?? ($subTotal + (float)$order->shipping_cost - (float)$order->coupon_discount));
+        $collected    = (float) SchedulePayment::where('order_id', $order->id)
+                            ->where('payment_status', 'paid')
+                            ->sum(DB::raw('CASE WHEN COALESCE(deducted_amount,0) > 0 THEN deducted_amount ELSE instalment_amount END'));
+        $retrieved    = 0.0; // إن كان عندك مبالغ مرتجعة خزّنها من transactions وأعدّل هنا
+        $canceled     = 0.0; // نفس الشيء للإلغاء
+        $remaining    = max(0.0, $grandTotal - $collected);
+        $totalLateFee = (float) SchedulePayment::where('order_id', $order->id)->sum('late_fee');
+        $totalSubs    = (float) SchedulePayment::where('order_id', $order->id)->sum('subscription_fee');
+
+        // (اختياري) لو عندك Transaction مخصص لهذا الطلب، استخدمه لتعبئة retrieved/canceled بدقة:
+        $tx = Transaction::where('refrence_payment', $payment->transaction_id)
+                ->orWhere('order_id', $order->id)
+                ->orderByDesc('id')
+                ->first(['collected','retrieved','canceled']);
+        if ($tx) {
+            $collected = (float) $tx->collected;
+            $retrieved = (float) $tx->retrieved;
+            $canceled  = (float) $tx->canceled;
+            $remaining = max(0.0, $grandTotal - $collected + $retrieved + $canceled);
+        }
+
+        // 7) تهيئة الهوية المعروضة للطلب
+        $idOrder   = $order->code ?: ($order->reference_id ?: ('AP-' . str_pad((string)$order->id, 5, '0', STR_PAD_LEFT)));
+        $dateOrder = optional($order->created_at)->format('M d, Y');
+
+        $payload = [
+            'id_order'    => (string) $idOrder,
+            'date_order'  => (string) $dateOrder,
+            'shop_name'   => $shopName,
+            'payment_list'=> $paymentList,
+            'order_items' => $orderItems,
+            'bill_details'=> [
+                'total'                  => ['amount' => $fmt($grandTotal), 'symbol' => $symbol],
+                'collected'              => ['amount' => $fmt($collected),  'symbol' => $symbol],
+                'retrieved'              => ['amount' => $fmt($retrieved),  'symbol' => $symbol],
+                'canceled'               => ['amount' => $fmt($canceled),   'symbol' => $symbol],
+                'remaining'              => ['amount' => $fmt($remaining),  'symbol' => $symbol],
+                'total_late_fee'         => ['amount' => $fmt($totalLateFee), 'symbol' => $symbol],
+                'total_subscription_fees'=> ['amount' => $fmt($totalSubs),    'symbol' => $symbol],
+            ],
+        ];
+
+        return $this->returnData($payload, 'Payment details fetched successfully');
     }
+
 
     public function updateProfile(Request $request)
     {
