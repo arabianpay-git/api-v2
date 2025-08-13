@@ -259,38 +259,63 @@ class AuthController extends Controller
 
     public function verifyWithNafath(Request $request, NafathService $nafath)
     {
-        $request->validate([
-            'id' => 'required',
-        ]);
-
+        
         $encryptionService = new EncryptionService();
         $idNumber = $encryptionService->decrypt($request->input('id'));
+        $phoneNumber = $encryptionService->decrypt($request->input('phone_number'));
 
-        $response = $nafath->initiateVerification($idNumber);
+        $count = NafathVerification::where('national_id', $idNumber)->count();
 
-        if (isset($response['status']) && str_starts_with($response['status'], '400-')) {
+        if ($count < 10) {
+            $response = $nafath->initiateVerification($idNumber);
+
+            if (isset($response['status']) && str_starts_with($response['status'], '400-')) {
+                return response()->json([
+                    'status' => false,
+                    'errNum' => 'E400',
+                    'msg' => $response['message'] ?? 'Nafath Error',
+                ], 400);
+            }
+
+            if (!isset($response['transId'], $response['random'])) {
+                return response()->json([
+                    'status' => false,
+                    'errNum' => 'E422',
+                    'msg' => 'Cannot start session, invalid Nafath response.',
+                ], 422);
+            }
+
+            // إذا لم يكن هناك سجل موجود، نقوم بإنشاء سجل جديد
+            // حفظ السجل في جدول nafath_verifications
+            $nafathVerification = NafathVerification::create([
+                'national_id'    => $idNumber,
+                'iqama_hash'     => Hash::make($idNumber),
+                'phone_number'   => $phoneNumber,
+                'trans_id'       => $response['transId'],
+                'random'         => $response['random'],
+                'status'         => "pending",
+                'nafath_response'=> json_encode($data['data'] ?? []),
+            ]);
+
+            $data = [
+                "id" => $nafathVerification->id,
+                "id_number" => $nafathVerification->national_id,
+                "phone" => $nafathVerification->phone_number,
+                "random" => $response['random'],
+                "transId" => $response['transId'],
+                "email_verified_at" => null,
+                "try" => 5,
+                "created_at" => $nafathVerification->created_at,
+                "updated_at" => $nafathVerification->updated_at
+            ];
+            return $this->returnData($data, 'Nafath verification initiated successfully.');
+        }else{
             return response()->json([
                 'status' => false,
-                'errNum' => 'E400',
-                'msg' => $response['message'] ?? 'Nafath Error',
-            ], 400);
+                'errNum' => 'E429',
+                'msg' => 'Too many requests, please try again later.',
+            ], 429);
         }
-
-        if (!isset($response['transId'], $response['random'])) {
-            return response()->json([
-                'status' => false,
-                'errNum' => 'E422',
-                'msg' => 'Cannot start session, invalid Nafath response.',
-            ], 422);
-        }
-
-        return response()->json([
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => 'Nafath verification started successfully.',
-            'nafath_trans_id' => $response['transId'],
-            'nafath_random' => $response['random'],
-        ]);
     }
 
     public function checkNafathStatus(Request $request, NafathService $nafath)
