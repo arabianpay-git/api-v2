@@ -103,7 +103,7 @@ class AuthController extends Controller
             $array = json_decode(base64_decode(str_replace('_', '/', str_replace('-','+',explode('.', $token)[1]))));
             $FullDataUser =  (array) $array;
             $UserData = (array) $FullDataUser['user_info'];
-            $validation = NafathVerification::where('id_number', $UserData['id'])->first();
+            $validation = NafathVerification::where('national_id', $encryptionService->db_encrypt($UserData['id']))->first();
             if(isset($validation)){
             $validation->nafath_data = json_encode($UserData);
             $validation->save();
