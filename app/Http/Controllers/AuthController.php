@@ -260,11 +260,11 @@ class AuthController extends Controller
     public function verifyWithNafath(Request $request, NafathService $nafath)
     {
         $request->validate([
-            'id_number' => 'required',
+            'id' => 'required',
         ]);
 
         $encryptionService = new EncryptionService();
-        $idNumber = $encryptionService->decrypt($request->input('id_number'));
+        $idNumber = $encryptionService->decrypt($request->input('id'));
 
         $response = $nafath->initiateVerification($idNumber);
 
