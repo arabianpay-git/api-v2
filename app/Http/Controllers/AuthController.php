@@ -18,6 +18,7 @@ use Illuminate\Validation\ValidationException;
 use Log;
 use Str;
 use App\Traits\ApiResponseTrait;
+use Throwable;
 use Validator;
 
 class AuthController extends Controller
@@ -90,6 +91,103 @@ class AuthController extends Controller
             'body'    => json_decode($request->getContent(), true) ?? $request->all(),
             'files'   => array_keys($request->allFiles()),
         ]);
+
+        $data = $request->all();
+
+        if(isset($data['status']) && $data['status'] == 'COMPLETED' ){
+
+            $token = $data['response'];
+            $encryptionService = new EncryptionService();
+        
+            
+            $array = json_decode(base64_decode(str_replace('_', '/', str_replace('-','+',explode('.', $token)[1]))));
+            $FullDataUser =  (array) $array;
+            $UserData = (array) $FullDataUser['user_info'];
+            $validation = NafathVerification::where('id_number', $UserData['id'])->first();
+            if(isset($validation)){
+            $validation->nafath_data = json_encode($UserData);
+            $validation->save();
+            $phone = $encryptionService->db_encrypt($validation->phone);
+                $user = User::where('user_type',"user")->where('phone_number',$phone)->first();
+                if($user){
+                    return response()->json(['message' => 'User already exit'], 422);
+                }
+
+                $this->createUserFromNafath($UserData, $phone);
+                if ($user) {
+                                try {
+                                    DB::transaction(function () use ($user, $UserData) {
+
+                                        // رقم الهوية من نفاذ (أو استخدم $user->iqama لو تفضّل)
+                                        $idNumber = $UserData['id'] ?? $user->iqama ?? null;
+
+                                        // لو ما فيه رقم هوية لا ننشئ عميل (أو ارجع بخطأ حسب منطقك)
+                                        if (empty($idNumber)) {
+                                            throw new \RuntimeException('Missing national id from Nafath data.');
+                                        }
+
+                                        // تاريخ الميلاد (إن توفر في نفاذ)
+                                        $dob = null;
+                                        if (!empty($UserData['date_of_birth']) || !empty($UserData['dob'])) {
+                                            $raw = $UserData['date_of_birth'] ?? $UserData['dob'];
+                                            try { $dob = Carbon::parse($raw)->toDateString(); } catch (\Exception $e) { $dob = null; }
+                                        }
+
+                                        // JSON صالح لقيود json_valid
+                                        $nafathJson = json_encode($UserData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+                                        // ملاحظة: لدينا قيود UNIQUE على address, id_number, id_owner, cr_number, tax_number
+                                        // لذلك نملأ فقط ما نعرفه أكيدًا؛ نترك الباقي NULL لتفادي تضارب فريد.
+                                        Customer::updateOrCreate(
+                                            ['id_number' => $idNumber], // مفتاح البحث (unique)
+                                            [
+                                                'assigned_to'              => null,
+                                                'user_id'                  => $user->id,
+                                                'package_id'               => null,
+                                                'business_type_id'         => null,
+                                                'business_category_id'     => null,
+                                                'address'                  => null,   // لا تملأه إلا إذا عندك عنوان مؤكد
+                                                'id_owner'                 => $idNumber, // للعميل الفرد نفس رقم الهوية
+                                                'cr_number'                => null,
+                                                'tax_number'               => null,
+                                                'cr_data'                  => null,   // JSON للسجل التجاري إن توفر لاحقًا
+                                                'check_nafath'             => 1,
+                                                'nafath_data'              => $nafathJson,
+                                                'date_of_birth'            => $dob,
+                                                'purchasing_volume'        => null,
+                                                'purchasing_natures'       => null,
+                                                'other_purchasing_natures' => null,
+                                                'status'                   => 'pending', // الافتراضي
+                                            ]
+                                        );
+                                    });
+
+                                } catch (Throwable $e) {
+                                    Log::error('Customer create/update failed (Nafath)', [
+                                        'user_id'   => $user->id ?? null,
+                                        'id_number' => $nafathData['id'] ?? null,
+                                        'error'     => $e->getMessage(),
+                                        'exception' => get_class($e),
+                                        'code'      => $e->getCode(),
+                                        'file'      => $e->getFile(),
+                                        'line'      => $e->getLine(),
+                                    ]);
+                                    // حسب نمطك:
+                                    // return response()->json(['status'=>false,'errNum'=>'E500','msg'=>'Could not create customer'], 500);
+                                }
+                                $id = $UserData['id'];
+
+                                // event(new \App\Events\NafathEvent($data));
+                                broadcast(new \App\Events\NafathEvent($data,$id));
+
+                                // return $this->sendOtpRegister($user->phone);
+                                // DB::commit();
+                            }
+                            return response()->json(['message' => 'Success'], 200);
+
+            }
+        }
+
 
         return response()->json(['ok' => true], 200);
     }
