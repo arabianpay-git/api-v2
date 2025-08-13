@@ -95,7 +95,7 @@ class AuthController extends Controller
         $data = $request->all();
 
         if(isset($data['status']) && $data['status'] == 'COMPLETED' ){
-
+            Log::info('get Token from Nafath callback.');
             $token = $data['response'];
             $encryptionService = new EncryptionService();
         
@@ -104,17 +104,23 @@ class AuthController extends Controller
             $FullDataUser =  (array) $array;
             $UserData = (array) $FullDataUser['user_info'];
             $validation = NafathVerification::where('national_id', $encryptionService->db_encrypt($UserData['id']))->first();
+            Log::info('get validation: ' . $UserData['id']);
+
             if(isset($validation)){
+            Log::info('Nafath verification found for ID: ' . $UserData['id']);
             $validation->nafath_response = json_encode($UserData);
             $validation->save();
             $phone = $encryptionService->db_encrypt($validation->phone);
                 $user = User::where('user_type',"user")->where('phone_number',$phone)->first();
                 if($user){
+                    Log::info('User already exists with phone: ' . $phone);
                     return response()->json(['message' => 'User already exit'], 422);
                 }
 
+
                 $user = $this->createUserFromNafath($UserData, $phone);
                 if ($user) {
+                    Log::info('Creating or updating customer from Nafath data.');
                                 try {
                                     DB::transaction(function () use ($user, $UserData) {
 
