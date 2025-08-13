@@ -12,6 +12,7 @@ Route::prefix('v2/auth/register')->group(function () {
     Route::post('/verify-id-with-nafath', [AuthController::class, 'verifyWithNafath']);
     Route::post('/check-nafath-status', [AuthController::class, 'checkNafathStatus']);
     Route::post('/complete-register-customer', [AuthController::class, 'completeRegisterCustomer']);
+    Route::post('/callback-nafath-arabianpay', [AuthController::class, 'callbackNafath']);
 });
 
 Route::middleware(['auth:sanctum', 'sanctum.auth.json'])->post('v2/auth/logout', [AuthController::class, 'logout']);

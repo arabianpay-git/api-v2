@@ -81,6 +81,18 @@ class AuthController extends Controller
         ]);
     }
 
+    public function callbackNafath(Request $request){
+        Log::info('Shadow webhook received a mirrored request.', [
+            'method'  => $request->method(),
+            'query'   => $request->query(),
+            'headers' => $request->headers->all(),
+            'body'    => json_decode($request->getContent(), true) ?? $request->all(),
+            'files'   => array_keys($request->allFiles()),
+        ]);
+
+        return response()->json(['ok' => true], 200);
+    }
+
     
     public function verifyOtp(Request $request)
     {
