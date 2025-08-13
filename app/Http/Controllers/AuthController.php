@@ -82,6 +82,7 @@ class AuthController extends Controller
     }
 
     public function callbackNafath(Request $request){
+        Log::info('received a mirrored request from Nafath.');
         Log::info('Shadow webhook received a mirrored request.', [
             'method'  => $request->method(),
             'query'   => $request->query(),
