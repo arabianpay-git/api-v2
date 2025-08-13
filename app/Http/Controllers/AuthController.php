@@ -194,6 +194,8 @@ class AuthController extends Controller
             }else{
                 Log::error('Nafath verification not found for ID: ' . $UserData['id']);
             }
+        }else{
+            Log::error('Nafath callback received without status COMPLETED.');
         }
 
 
