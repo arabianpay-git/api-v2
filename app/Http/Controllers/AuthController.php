@@ -105,7 +105,7 @@ class AuthController extends Controller
             $UserData = (array) $FullDataUser['user_info'];
             $validation = NafathVerification::where('national_id', $encryptionService->db_encrypt($UserData['id']))->first();
             if(isset($validation)){
-            $validation->nafath_data = json_encode($UserData);
+            $validation->nafath_response = json_encode($UserData);
             $validation->save();
             $phone = $encryptionService->db_encrypt($validation->phone);
                 $user = User::where('user_type',"user")->where('phone_number',$phone)->first();
@@ -185,6 +185,8 @@ class AuthController extends Controller
                             }
                             return response()->json(['message' => 'Success'], 200);
 
+            }else{
+                Log::error('Nafath verification not found for ID: ' . $UserData['id']);
             }
         }
 
