@@ -113,7 +113,7 @@ class AuthController extends Controller
                     return response()->json(['message' => 'User already exit'], 422);
                 }
 
-                $this->createUserFromNafath($UserData, $phone);
+                $user = $this->createUserFromNafath($UserData, $phone);
                 if ($user) {
                                 try {
                                     DB::transaction(function () use ($user, $UserData) {
