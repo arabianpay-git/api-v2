@@ -11,6 +11,7 @@ use Auth;
 use Carbon\Carbon;
 use DB;
 use Hash;
+use Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use App\Models\User;
@@ -74,6 +75,8 @@ class AuthController extends Controller
 
         // Log OTP for development/debugging (replace with SMS gateway in production)
         logger("OTP generated for {$phone}: {$otpCode}");
+
+        $this->sendSmsViaOurSms([$phone], "Your OTP code is: {$otpCode}");
 
         return response()->json([
             'status' => true,
@@ -290,21 +293,18 @@ class AuthController extends Controller
         $encryptionService = new EncryptionService();
 
         // فك التشفير
-        $phone = $encryptionService->decrypt($request->input('phone'));
-        $idNumber = $encryptionService->decrypt($request->input('id_number'));
+        $phone = $encryptionService->decrypt($request->input('phone_number'));
 
         // التحقق من صحة البيانات
         Validator::make([
-            'phone' => $phone,
-            'id_number' => $idNumber,
+            'phone_number' => $phone,
         ], [
-            'phone' => 'required|regex:/^\d{9,15}$/|unique:users,phone_number',
-            'id_number' => 'required|digits_between:5,20',
+            'phone_number' => 'required|regex:/^\d{9,15}$/|unique:users,phone_number',
         ])->validate();
 
         
         if (User::where('phone_number', $encryptionService->db_encrypt($phone))
-            ->orWhere('iqama',$encryptionService->db_encrypt($idNumber))->exists()) {
+            ->exists()) {
             return response()->json([
                 'status' => false,
                 'errNum' => 'E409',
@@ -315,20 +315,25 @@ class AuthController extends Controller
         // إنشاء أو تحديث OTP
         $otpCode = rand(100000, 999999);
 
-        Otp::updateOrCreate(
-            ['phone' => $phone],
-            [
-                'id_number' => $idNumber,
-                'code' => $otpCode,
-                'expires_at' => now()->addMinutes(10),
-                'used' => 0,
-                'attempts' => DB::raw('attempts + 1'),
-                'sends' => DB::raw('sends + 1'),
-            ]
-        );
+        // Insert new OTP
+        DB::table('otps')->insert([
+            'phone' => $phone,
+            'code' => $otpCode,
+            'attempts' => 0,
+            'sends' => 1,
+            'used' => 0,
+            'expires_at' => Carbon::now()->addMinutes(5),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Log OTP for development/debugging (replace with SMS gateway in production)
+        logger("OTP generated for {$phone}: {$otpCode}");
 
         // يمكنك إرسال الـ OTP برسالة SMS، أو فقط تسجيله في الـ Log للتجربة
         Log::info('OTP for ' . $phone . ': ' . $otpCode);
+
+        $this->sendSmsViaOurSms([$phone], "Your OTP code is: {$otpCode}");
 
         return response()->json([
             'status' => true,
@@ -780,5 +785,43 @@ class AuthController extends Controller
         return $phone;
     }
 
+    protected function sendSms($phone, $message)
+    {
+        $post = [
+            "userName"   => "Arabianpay",
+            "apiKey"     => "3C3754D89046EA115D616FBCF2A19198",
+            "userSender" => "Arabianpay",
+            "msg"        => $message,
+            "numbers"    => $phone,
+        ];
+
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL            => 'https://www.msegat.com/gw/sendsms.php',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode($post),
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        ]);
+        curl_exec($curl);
+        curl_close($curl);
+    }
+
+    protected function sendSmsViaOurSms(array $phones, string $message)
+    {
+        $postData = [
+            "src"   => "Arabianpay",
+            "dests" => $phones,
+            "body"  => $message,
+        ];
+
+        $response = Http::withToken('byrIU6zU7Uk-Si-Z-qvA')
+            ->acceptJson()
+            ->post('https://api.oursms.com/msgs/sms', $postData);
+
+        return $response->successful()
+            ? $response->json()
+            : $response->body();
+    }
 
 }
