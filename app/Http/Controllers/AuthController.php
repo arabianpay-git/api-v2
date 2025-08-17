@@ -76,7 +76,10 @@ class AuthController extends Controller
         // Log OTP for development/debugging (replace with SMS gateway in production)
         logger("OTP generated for {$phone}: {$otpCode}");
 
-        $this->sendSmsViaOurSms([$phone], "Your OTP code is: {$otpCode}");
+        if($phone != self::DUMMY_PHONE) {
+           $this->sendSmsViaOurSms([$phone], "Your OTP code is: {$otpCode}");
+        }
+        
 
         return response()->json([
             'status' => true,
@@ -390,7 +393,7 @@ class AuthController extends Controller
         $idNumber = $encryptionService->decrypt($request->input('id'));
         $phoneNumber = $encryptionService->decrypt($request->input('phone_number'));
 
-        $count = NafathVerification::where('national_id', $idNumber)->count();
+        $count = NafathVerification::where('national_id', $encryptionService->db_encrypt($idNumber))->count();
 
         if ($count < 10) {
             $response = $nafath->initiateVerification($idNumber);
@@ -430,7 +433,7 @@ class AuthController extends Controller
                 "random" => $response['random'],
                 "transId" => $response['transId'],
                 "email_verified_at" => null,
-                "try" => 5,
+                "try" => $count,
                 "created_at" => $nafathVerification->created_at,
                 "updated_at" => $nafathVerification->updated_at
             ];

@@ -17,15 +17,15 @@ use DB;
 use Http;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Log;
 use Str;
 
 class PaymentsController extends Controller
 {
     public function createPayment(Request $request)
     {
-        $request->validate([
-            'order_id' => 'required|integer|exists:orders,id',
-        ]);
+        Log::debug('Creating payment with request: ', $request->all());
+        
 
         $user = auth()->user();
         $order = Order::findOrFail($request->order_id);

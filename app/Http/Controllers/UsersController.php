@@ -53,9 +53,9 @@ class UsersController extends Controller
                     "name_shop" => $tx->store->name ?? '--',
                     "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
                         return [
-                            "payment_id" => $sp->uuid,
-                            "reference_id" => $sp->reference_id,
-                            "name_shop" => "",
+                            "payment_id" => $sp->transaction_id,
+                            "reference_id" => $sp->id,
+                            "name_shop" => "freedooo",
                             "installment_number" => $sp->installment_number,
                             "current_installment" => $sp->is_current_installment,
                             "date" => Carbon::parse($sp->due_date)->format('M d, Y'),
@@ -186,45 +186,44 @@ class UsersController extends Controller
             ->map(fn ($g) => (string) data_get($g->first(), 'seller.shop.name', ''));
 
         $fmt = fn($v) => number_format((float)($v ?? 0), 2, '.', '');
-
-        $payments = $rows->groupBy('transaction_id')
-            ->map(function ($group, $ref) use ($shopsByRef, $fmt) {
-                $shopName = (string) ($shopsByRef[$ref] ?? '');
-
-                $schedule = $group->map(function ($p) use ($fmt) {
-                    $due = $p->due_date ? Carbon::parse($p->due_date) : null;
-
-                    return [
-                        'payment_id'         => (string) $p->uuid,
-                        'reference_id'       => (string) $p->transaction_id, // نفس المرجع
-                        'name_shop'          => '', // يمكن تعبئته إن رغبت على مستوى القسط
-                        'installment_number' => (int) $p->instalment_number,
-                        // اعتبر القسط الحالي = نفس الشهر ولم يُدفع
-                        'current_installment'=> $due ? ($p->payment_status !== 'paid' && $due->isCurrentMonth()) : false,
-                        'date'               => $due ? $due->translatedFormat('M d, Y') : null,
-                        'amount'             => [
-                            'amount' => $fmt($p->instalment_amount),
-                            'symbol' => 'SR',
-                        ],
-                        'late_fee'           => [
-                            'amount' => $fmt($p->late_fee),
-                            'symbol' => 'SR',
-                        ],
-                        'status'             => [
-                            'name' => $this->mapPaymentStatus($p->payment_status),
-                            'slug' => (string) $p->payment_status,
-                        ],
-                    ];
-                })->values();
-
+        
+        $payments = Transaction::where('user_id', $userId)
+            ->with(['schedulePayments' => function ($q) {
+                $q->orderBy('due_date');
+            }, 'store'])
+            ->get()
+            ->map(function ($tx) {
                 return [
-                    'transaction_id'    => (string) $ref,     // تجميعة المجموعة
-                    'reference_id'      => (string) $ref,     // نفس الحقل للحفاظ على الشكل
-                    'name_shop'         => $shopName,         // اسم المتجر على مستوى المجموعة
-                    'schedule_payments' => $schedule,
+                    "transaction_id" => $tx->uuid,
+                    "reference_id" => $tx->order->reference_id ?? 'N/A',
+                    "name_shop" => $tx->store->name ?? '--',
+                    "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
+                        $currentDate = Carbon::now();
+                        $paymentState = $sp->payment_status == 'due'? 'outstanding' : $sp->payment_status;
+                        return [
+                            "payment_id" => $sp->transaction_id,
+                            "reference_id" => $sp->id,
+                            "name_shop" => "omar",
+                            "installment_number" => (int)$sp->instalment_number,
+                            'current_installment' => $sp->due_date  <= $currentDate && $sp->payment_status != 'paid' ? true : false,
+                            "date" => Carbon::parse($sp->due_date)->format('M d, Y'),
+                            "amount" => [
+                                "amount" => number_format($sp->instalment_amount, 2),
+                                "symbol" => "SR"
+                            ],
+                            "late_fee" => [
+                                "amount" => number_format($sp->late_fee, 2),
+                                "symbol" => "SR"
+                            ],
+                            "status" => [
+                                "name" => ucfirst($paymentState),
+                                "slug" => $paymentState
+                            ]
+                        ];
+                    })
                 ];
-            })
-            ->values();
+            });
+
 
         return $this->returnData($payments, 'Payments fetched successfully');
     }
@@ -492,7 +491,7 @@ class UsersController extends Controller
             return [
                 'payment_id'         => (string) $p->uuid,
                 'reference_id'       => (int) $p->id, // أرقام مثل العينة (10/11/12). بدّلها لو تبي مرجع آخر.
-                'name_shop'          => '',
+                'name_shop'          => 'omar',
                 'installment_number' => (int) $p->instalment_number,
                 'current_installment'=> ($p->uuid === $firstUpcomingUuid),
                 'date'               => $due ? $due->format('M d, Y') : null,
