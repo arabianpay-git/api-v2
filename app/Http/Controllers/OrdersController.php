@@ -565,6 +565,51 @@ class OrdersController extends Controller
 
     public function getAddress(Request $request, string $referenceId)
         {
+            $order = Order::query()
+                ->where('id', $transaction->order_id ?? 0)
+                ->where('user_id', $request->user()->id)
+                ->first([
+                    'shipping_first_name','shipping_last_name',
+                    'shipping_address_line1','shipping_address_line2',
+                    'shipping_city','shipping_state','shipping_country',
+                    'shipping_postal_code',
+                ]);
+
+                if ($order) {
+                 // الاسم
+                $name = trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? ''));
+
+                // العنوان النصّي "line1 - line2"
+                $addressText = trim(
+                    (string) ($order->shipping_address_line1 ?? '') .
+                    ((isset($order->shipping_address_line2) && $order->shipping_address_line2 !== '')
+                        ? ' - ' . $order->shipping_address_line2
+                        : '')
+                );
+
+                // بريد وهاتف من حساب المستخدم (إن وُجدت بالأعمدة)
+                $email = $request->user()->email ?? null;
+                $phone = $request->user()->phone_number ?? null;
+
+                $payload = [
+                    'name'            => $name ?: null,
+                    'recipients_name' => $name ?: null,
+                    'email'           => $email, // لا يوجد عمود بريد في orders
+                    'address'         => $addressText ?: null,
+                    'country'         => (string) ($order->shipping_country ?? ''),
+                    'state'           => (string) ($order->shipping_state ?? ''),
+                    'city'            => (string) ($order->shipping_city ?? ''),
+                    'postal_code'     => $order->shipping_postal_code,
+                    'phone'           => $phone ? (string) $phone : null, // لا يوجد عمود هاتف في orders
+                    'latitude'        => 21.762632369995117, // لا توجد أعمدة إحداثيات في الجدول الحالي
+                    'longitude'       => 21.762632369995117,
+                ];
+
+            
+
+                // أو إن كان لديك هيلبر موحّد:
+                return $this->returnData($payload, 'Shipping address fetched successfully');
+            }
             $transaction = Transaction::where('uuid', $referenceId)
             ->where('user_id', $request->user()->id)->first();
 
