@@ -566,7 +566,7 @@ class OrdersController extends Controller
     public function getAddress(Request $request, string $referenceId)
         {
             $order = Order::query()
-                ->where('id', $transaction->order_id ?? 0)
+                ->where('id', $referenceId)
                 ->where('user_id', $request->user()->id)
                 ->first([
                     'shipping_first_name','shipping_last_name',
