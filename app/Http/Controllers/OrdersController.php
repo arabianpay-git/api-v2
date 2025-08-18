@@ -568,7 +568,7 @@ class OrdersController extends Controller
             $transaction = Transaction::where('uuid', $referenceId)
             ->where('user_id', $request->user()->id)->first();
 
-            return $transaction;
+            return $transaction??"Not Found";
             if (!empty($transaction)) {
                 $order = Order::query()
                 ->where('id', $transaction->order_id ?? 0)
