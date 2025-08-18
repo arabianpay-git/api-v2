@@ -14,6 +14,7 @@ use App\Models\Shop;
 use App\Models\ShopSetting;
 use App\Models\Slider;
 use App\Models\Transaction;
+use App\Models\UserCards;
 use App\Traits\ApiResponseTrait;
 use Auth;
 use Carbon\Carbon;
@@ -49,8 +50,8 @@ class UsersController extends Controller
             ->map(function ($tx) {
                 return [
                     "transaction_id" => $tx->uuid,
-                    "reference_id" => $tx->reference_id??'--',
-                    "name_shop" => $tx->store->name ?? '--',
+                    "reference_id" => $tx->order->reference_id ?? 'N/A',
+                    "name_shop" => $tx->seller->shop->name ?? '--',
                     "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
                         return [
                             "payment_id" => $sp->transaction_id,
@@ -196,7 +197,7 @@ class UsersController extends Controller
                 return [
                     "transaction_id" => $tx->uuid,
                     "reference_id" => $tx->order->reference_id ?? 'N/A',
-                    "name_shop" => $tx->store->name ?? '--',
+                    "name_shop" => $tx->seller->shop->name ?? '--',
                     "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
                         $currentDate = Carbon::now();
                         $paymentState = $sp->payment_status == 'due'? 'outstanding' : $sp->payment_status;
@@ -360,34 +361,71 @@ class UsersController extends Controller
             ->where('payment_status', 'paid')   // أو القيمة المطابقة في نظامك
             ->sum('instalment_amount');
     }
+    // Controller method
     public function getCards(Request $request)
     {
-        // Assuming you have a method to fetch user's cards
-        $userId = $request->user()->id;
-        $cards = []; // Fetch user's cards from the database
+        $userId = auth()->id(); // أو مرّر $userId كما تريد
 
-        $data =[
-                                [
-                                    "id"=> 6,
-                                    "type"=> "Credit",
-                                    "scheme"=> "Visa",
-                                    "number"=> "4000 00## #### 0002",
-                                    "token"=> "2C4654BC67A3E935C6B691FD6C8374BE",
-                                    "is_default"=> false
-                                ],
-                                [
-                                    "id"=> 7,
-                                    "type"=> "Debit",
-                                    "scheme"=> "Visa",
-                                    "number"=> "4575 53## #### 0459",
-                                    "token"=> "394154BC67A3EF34C7B093FD618778B8",
-                                    "is_default"=> false
-                                ]
-                            ];
+        $cards = UserCards::where('user_id', $userId)
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get(['id','type','scheme','number','token','is_default']);
 
-        return $this->returnData($data);
+        if ($cards->isEmpty()) {
+            return $this->returnData($cards, 'No cards found for this user.');
+        }
 
+        $data = $cards->map(function ($c) {
+            return [
+                'id'         => (int) $c->id,
+                'type'       => (string) $c->type,    // Credit / Debit
+                'scheme'     => (string) $c->scheme,  // Visa / MasterCard ...
+                'number'     => $this->maskCardNumber($c->number), // "4000 00## #### 0002"
+                'token'      => (string) $c->token,
+                'is_default' => (bool) $c->is_default,
+            ];
+        })->values();
+
+        return $this->returnData($data, 'Cards retrieved successfully.');
     }
+
+    /**
+     * إخفاء رقم البطاقة وإخراجه بشكل مشابه: 4000 00## #### 0002
+     * يحافظ على أول 6 وآخر 4 أرقام، ويضع # للباقي، مع مسافات مثل المثال.
+     */
+    function maskCardNumber(?string $raw): string
+    {
+        if (!$raw) return '';
+
+        // أزل أي مسافات/رموز غير أرقام
+        $num = preg_replace('/\D/', '', $raw);
+
+        // لو الرقم غير قياسي، رجّعه كما هو
+        if (strlen($num) < 10) {
+            return $raw;
+        }
+
+        $first4   = substr($num, 0, 4);
+        $next2    = substr($num, 4, 2);
+        $last4    = substr($num, -4);
+        $middleLen = max(0, strlen($num) - 10); // الباقي بين أول 6 وآخر 4
+        $maskedMid = str_repeat('#', $middleLen);
+
+        // لتقليد شكل "4000 00## #### 0002":
+        $partA = substr($maskedMid, 0, 2);           // "##"
+        $partB = substr($maskedMid, 2, 4);           // "####"
+        $masked = trim(sprintf('%s %s%s %s %s', $first4, $next2, $partA, $partB, $last4));
+
+        // في حال كان الطول غير 16، عدّل بسيط بإضافة باقي الـ# مع مسافات كل 4
+        $rest = substr($maskedMid, 6);
+        if ($rest !== false && $rest !== '') {
+            $restGrouped = trim(implode(' ', str_split($rest, 4)));
+            $masked = trim($first4.' '.$next2.$partA.' '.$partB.' '.($restGrouped ? $restGrouped.' ' : '').$last4);
+        }
+
+        return $masked;
+    }
+    
 
 
     public function getPaymentDetails(Request $request, string $uuid)
