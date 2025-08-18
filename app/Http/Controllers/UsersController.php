@@ -372,7 +372,7 @@ class UsersController extends Controller
             ->get(['id','type','scheme','number','token','is_default']);
 
         if ($cards->isEmpty()) {
-            return response()->json(['status'=>false,'errNum'=>'E404','msg'=>'No cards found for this user.'], 404);
+            return response()->json(['status'=>false,'errNum'=>'E422','msg'=>'No cards found for this user.'], 404);
         }
 
         $data = $cards->map(function ($c) {
