@@ -13,6 +13,8 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\ShopSetting;
 use App\Models\Slider;
+use App\Models\Transaction;
+use Arr;
 use Auth;
 use DB;
 use Http;
@@ -27,21 +29,28 @@ class PaymentsController extends Controller
     {
         Log::debug('Creating payment with request: ', $request->all());
 
+        $user = auth()->user();
+       
+
         $encryptionService = new EncryptionService();
         $response = $encryptionService->decrypt($request->transaction_details);
+        $transaction = Transaction::where('uuid', Arr::get($response, 'cartID'))->first();
+        $order = Order::where($transaction->order_id)->first();
         $result = app(\App\Services\ClickpayService::class)
                     ->storeFromClickpay(
                         $response,
-                        userId: 123,            // المشتري
-                        sellerId: 456,          // إن وجد
-                        orderId: null,          // أو مرّر رقم طلبك الداخلي
+                        userId: $user->id,            // المشتري
+                        sellerId: $order->seller_id,          // إن وجد
+                        orderId: $order->id,          // أو مرّر رقم طلبك الداخلي
                         invoiceNo: null,        // أو مرّر فاتورتك الداخلية
                         taxNo: null
                     );
         
+        return response()->json($result);
+    
+        
 
-        $user = auth()->user();
-        $order = Order::findOrFail($request->order_id);
+       
 
         // Determine amount (e.g., for the whole order or next installment)
         $clickpayResponse = $this->createClickPayInvoice($order, $user);
