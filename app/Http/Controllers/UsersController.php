@@ -201,6 +201,23 @@ class UsersController extends Controller
                     "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
                         $currentDate = Carbon::now();
                         $paymentState = $sp->payment_status == 'due'? 'outstanding' : $sp->payment_status;
+                        switch ($paymentState) {
+                            case 'due':
+                                $paymentState = 'outstanding';
+                                break;
+                            case 'late':
+                                $paymentState = 'overdue';
+                                break;
+                            case 'paid':
+                                $paymentState = 'paid';
+                                break;
+                            case 'pending':
+                                $paymentState = 'pending';
+                                break;
+                            default:
+                                $paymentState = 'pending';
+                        }
+
                         return [
                             "payment_id" => $sp->transaction_id,
                             "reference_id" => $sp->id,
