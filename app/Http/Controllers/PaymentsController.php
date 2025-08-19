@@ -35,7 +35,7 @@ class PaymentsController extends Controller
         $encryptionService = new EncryptionService();
         $response = $encryptionService->decrypt($request->transaction_details);
         $transaction = Transaction::where('uuid', Arr::get($response, 'cartID'))->first();
-        $order = Order::where($transaction->order_id)->first();
+        $order = Order::where( "id",$transaction->order_id)->first();
         $result = app(\App\Services\ClickpayService::class)
                     ->storeFromClickpay(
                         $response,
