@@ -88,16 +88,18 @@ class ClickpayService
             // اختر order_id: المرسل للدالة أو cartID من البوابة
             $finalOrderId = $orderId ?: $cartIdFromGateway;
 
+            $status      = strtoupper((string) Arr::get($payload, 'paymentResult.responseStatus', ''));
+            $isSuccess   = (bool) Arr::get($payload, 'isSuccess', false);
+            $isProcessed = (bool) Arr::get($payload, 'isProcessed', false);
+            $txnType     = strtolower((string) Arr::get($payload, 'transactionType', '')); // sale | auth
+
             // حوّل كود الحالة لنص داخلي (اختياري)
-            $paymentStatus = match (strtoupper((string) $statusCode)) {
-                'A'   => 'authorised',
-                'H'   => 'on_hold',
-                'P'   => 'pending',
-                'C'   => 'cancelled',
-                'D'   => 'declined',
-                'V'   => 'voided',
-                'S'   => 'settled',
-                default => 'unknown',
+            $paymentStatus =match ($status) {
+                'A' => ($txnType === 'sale' || $isProcessed || $isSuccess) ? 'paid' : 'pending',
+                'S' => 'paid',
+                'H', 'P' => 'pending',
+                'D', 'C', 'V' => 'failed',
+                default => $isSuccess ? 'paid' : 'failed',
             };
 
             // جهّز تفاصيل الدفع كـ JSON (اختصر/أضف ما يلزمك)
