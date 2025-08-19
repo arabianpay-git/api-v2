@@ -159,6 +159,7 @@ class UsersController extends Controller
         $rows = SchedulePayment::query()
             ->where('user_id', $userId)
             ->whereNotNull('transaction_id')  // لضمان التجميع
+            ->where('payment_status', '!=', 'paid') // استبعاد المدفوعات المدفوعة
             ->orderBy('transaction_id')
             ->orderBy('instalment_number')
             ->get([
@@ -194,13 +195,34 @@ class UsersController extends Controller
             }, 'store'])
             ->get()
             ->map(function ($tx) {
+                $currentDate = Carbon::now();
+                $today = Carbon::now('Asia/Riyadh')->startOfDay();
+                $currentCandidateId = null;
+                for ($i = 0; $i < $tx->schedulePayments->count(); $i++) {
+                            /** @var \App\Models\SchedulePayment $sp */
+                            $sp = $tx->schedulePayments[$i];
+
+                            $isFuture   = $sp->due_date instanceof Carbon
+                                ? $sp->due_date->gt($currentDate)
+                                : Carbon::parse($sp->due_date)->gt($today);
+
+                            if ($isFuture && $sp->payment_status !== 'paid') {
+                                $prev = $i > 0 ? $tx->schedulePayments[$i - 1] : null;
+
+                                if ($prev && $prev->payment_status === 'paid') {
+                                    $currentCandidateId = $sp->id;
+                                    break; // وجدنا المطلوب
+                                }
+                            }
+                        }
+
                 return [
                     "transaction_id" => $tx->uuid,
                     "reference_id" => $tx->order->reference_id ?? 'N/A',
                     "name_shop" => $tx->seller->shop->name ?? '--',
-                    "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
+                    "schedule_payments" => $tx->schedulePayments->map(function ($sp) use ($currentCandidateId) {
                         $currentDate = Carbon::now();
-                        $paymentState = $sp->payment_status == 'due'? 'outstanding' : $sp->payment_status;
+                        $paymentState = $sp->payment_status;
                         switch ($paymentState) {
                             case 'due':
                                 $paymentState = 'outstanding';
@@ -223,7 +245,7 @@ class UsersController extends Controller
                             "reference_id" => $sp->id,
                             "name_shop" => "omar",
                             "installment_number" => (int)$sp->instalment_number,
-                            'current_installment' => $sp->due_date  <= $currentDate && $sp->payment_status != 'paid' ? true : false,
+                            'current_installment' => $sp->id === $currentCandidateId,
                             "date" => Carbon::parse($sp->due_date)->format('M d, Y'),
                             "amount" => [
                                 "amount" => number_format($sp->instalment_amount, 2),
