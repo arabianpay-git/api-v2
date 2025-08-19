@@ -220,7 +220,7 @@ class UsersController extends Controller
                     "transaction_id" => $tx->uuid,
                     "reference_id" => $tx->order->reference_id ?? 'N/A',
                     "name_shop" => $tx->seller->shop->name ?? '--',
-                    "schedule_payments" => $tx->schedulePayments->map(function ($sp) use ($currentCandidateId) {
+                    "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
                         $currentDate = Carbon::now();
                         $paymentState = $sp->payment_status;
                         switch ($paymentState) {
@@ -239,13 +239,14 @@ class UsersController extends Controller
                             default:
                                 $paymentState = 'pending';
                         }
+ 
 
                         return [
                             "payment_id" => $sp->transaction_id,
                             "reference_id" => $sp->id,
                             "name_shop" => "omar",
                             "installment_number" => (int)$sp->instalment_number,
-                            'current_installment' => $sp->id === $currentCandidateId?true:$sp->due_date  <= $currentDate && $sp->payment_status != 'paid' ? true : false,
+                            'current_installment' => $sp->due_date  <= $currentDate && $sp->payment_status != 'paid' ? true : false,
                             "date" => Carbon::parse($sp->due_date)->format('M d, Y'),
                             "amount" => [
                                 "amount" => number_format($sp->instalment_amount, 2),
