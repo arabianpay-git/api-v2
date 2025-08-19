@@ -245,7 +245,7 @@ class UsersController extends Controller
                             "reference_id" => $sp->id,
                             "name_shop" => "omar",
                             "installment_number" => (int)$sp->instalment_number,
-                            'current_installment' => $sp->id === $currentCandidateId,
+                            'current_installment' => $sp->id === $currentCandidateId?true:now() >= $sp->due_date && $sp->payment_status != 'paid' ? true : false,
                             "date" => Carbon::parse($sp->due_date)->format('M d, Y'),
                             "amount" => [
                                 "amount" => number_format($sp->instalment_amount, 2),
