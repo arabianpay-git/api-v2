@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\EncryptionService;
 use App\Models\AdsSlider;
 use App\Models\Brand;
 use App\Models\Cart;
@@ -25,6 +26,18 @@ class PaymentsController extends Controller
     public function createPayment(Request $request)
     {
         Log::debug('Creating payment with request: ', $request->all());
+
+        $encryptionService = new EncryptionService();
+        $response = $encryptionService->decrypt($request->transaction_details);
+        $result = app(\App\Services\ClickpayService::class)
+                    ->storeFromClickpay(
+                        $response,
+                        userId: 123,            // المشتري
+                        sellerId: 456,          // إن وجد
+                        orderId: null,          // أو مرّر رقم طلبك الداخلي
+                        invoiceNo: null,        // أو مرّر فاتورتك الداخلية
+                        taxNo: null
+                    );
         
 
         $user = auth()->user();
