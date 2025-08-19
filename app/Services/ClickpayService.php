@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Models\Payment;
+use App\Models\SchedulePayment;
 use App\Models\UserCards;
 use Arr;
 use Carbon\Carbon;
 use DB;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Http;
 
 class ClickpayService
@@ -139,6 +141,12 @@ class ClickpayService
                 'updated_at'      => now(),
             ]);
 
+            $schedule_payments = SchedulePayment::where('order_id', $finalOrderId)->where('payment_status','due')->first();
+            if($schedule_payments) {
+                $schedule_payments->update([
+                    'payment_status' => 'paid',
+                ]);
+            }
             return [
                 'user_card' => $userCard,
                 'payment'   => $payment,
