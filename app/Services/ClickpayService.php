@@ -128,7 +128,7 @@ class ClickpayService
                 'seller_id'       => $sellerId,
                 'order_id'        => $finalOrderId,
                 'amount'          => $amount,
-                'payment_details' => $paymentDetails, // JSON (تأكد من الـ cast)
+                'payment_details' => json_encode($paymentDetails, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), // JSON (تأكد من الـ cast)
                 'invoice_number'  => $finalInvoice,
                 'txn_code'        => $txnCode,
                 'tax_number'      => $taxNo,
