@@ -28,9 +28,9 @@ class ClickpayService
 
     public function __construct()
     {
-        $this->baseUrl   = config('services.clickpay.base_url');
-        $this->serverKey = config('services.clickpay.server_key');
-        $this->profileId = (int) config('services.clickpay.profile_id');
+        //$this->baseUrl   = config('services.clickpay.base_url');
+        //$this->serverKey = config('services.clickpay.server_key');
+        //$this->profileId = (int) config('services.clickpay.profile_id');
     }
 
     protected function client()
