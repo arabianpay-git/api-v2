@@ -141,11 +141,10 @@ class ClickpayService
                 'updated_at'      => now(),
             ]);
 
-            $schedule_payments = SchedulePayment::where('order_id', $finalOrderId)->where('payment_status','due')->first();
-            if($schedule_payments) {
-                $schedule_payments->update([
-                    'payment_status' => 'paid',
-                ]);
+            $schedule_payment = SchedulePayment::where('order_id', $finalOrderId)->where('payment_status','due')->first();
+            if($schedule_payment) {
+                $schedule_payment->payment_status = 'paid';
+                $schedule_payment->save();
             }
             return [
                 'user_card' => $userCard,
