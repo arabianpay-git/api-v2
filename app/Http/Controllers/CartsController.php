@@ -562,7 +562,7 @@ class CartsController extends Controller
                     'order_id' => $order->id,
                     'transaction_id' => $referenceId,
                     'instalment_number' => ($i + 1),
-                    'due_date' => now()->addDays((int)$intervalDays * ($i + 1)),
+                    'due_date' => $i == 0?now():now()->addDays((int)$intervalDays * ($i + 1)),
                     'instalment_amount' => $amountPerInstallment,
                     'principle_amount' => $amountPerInstallment,
                     'late_fee' => $lateFee,
