@@ -189,16 +189,16 @@ class AuthController extends Controller
                                     // حسب نمطك:
                                     // return response()->json(['status'=>false,'errNum'=>'E500','msg'=>'Could not create customer'], 500);
                                 }
-                                $data = [
+                                
+$data = [
                                     "verification"  => 'success',  // rejected
-                                    "phone_number"  => $phone,
+                                    "phone_number"  => $validation->phone,
                                     "date"          => date('d-m-Y H:i:s', strtotime(now())) ,
                                 ];
                                 $id = $UserData['id'];
 
                                 // event(new \App\Events\NafathEvent($data));
                                 broadcast(new \App\Events\NafathEvent($data,$id));
-
                                 // return $this->sendOtpRegister($user->phone);
                                 // DB::commit();
                             }
