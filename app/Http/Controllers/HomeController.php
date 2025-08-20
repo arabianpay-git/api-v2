@@ -42,11 +42,11 @@ class HomeController extends Controller
     public function test() {
         $data = [
                     "verification"  => 'success',  // rejected
-                    "phone_number"  => "966596256117",
+                    "phone_number"  => "966566684981",
                     "date"          => date('d-m-Y H:i:s', strtotime(now())) ,
                 ];
 
-        $id = "2497807558";
+        $id = "2590153728";
         broadcast(new \App\Events\NafathEvent($data,$id));
         //$validation = NafathVerification::where('national_id', 2417807558)->first();
         //return $validation;
