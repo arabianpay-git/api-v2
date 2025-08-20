@@ -189,6 +189,11 @@ class AuthController extends Controller
                                     // حسب نمطك:
                                     // return response()->json(['status'=>false,'errNum'=>'E500','msg'=>'Could not create customer'], 500);
                                 }
+                                $data = [
+                                    "verification"  => 'success',  // rejected
+                                    "phone_number"  => $phone,
+                                    "date"          => date('d-m-Y H:i:s', strtotime(now())) ,
+                                ];
                                 $id = $UserData['id'];
 
                                 // event(new \App\Events\NafathEvent($data));
@@ -395,7 +400,7 @@ class AuthController extends Controller
         $idNumber = $encryptionService->decrypt($request->input('id'));
         $phoneNumber = $encryptionService->decrypt($request->input('phone_number'));
 
-        $count = NafathVerification::where('national_id', $encryptionService->db_encrypt($idNumber))->count();
+        $count = NafathVerification::where('phone_number', $phoneNumber)->count();
 
         if ($count < 10) {
             $response = $nafath->initiateVerification($idNumber);

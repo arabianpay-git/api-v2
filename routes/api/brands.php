@@ -1,4 +1,4 @@
-'auth:sanctum', <?php
+<?php
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandsController;
