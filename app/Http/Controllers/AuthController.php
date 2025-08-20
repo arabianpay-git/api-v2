@@ -111,8 +111,8 @@ class AuthController extends Controller
             $UserData = (array) $FullDataUser['user_info'];
             Log::info('national_id: ' . $UserData['id']);
             Log::info('national_id enc: ' . encrypt($UserData['id']));
-            $validation = NafathVerification::where('national_id', encrypt($UserData['id']))->first();
-            Log::info('get validation: ' . $UserData['id']);
+            $validation = NafathVerification::where('trans_id', $data['transId'])->first();
+            Log::info('get validation: ' . $validation);
 
             if(isset($validation)){
             Log::info('Nafath verification found for ID: ' . $UserData['id']);

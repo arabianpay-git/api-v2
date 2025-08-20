@@ -6,6 +6,7 @@ use App\Helpers\EncryptionService;
 use App\Models\AdsSlider;
 use App\Models\Attribute;
 use App\Models\Brand;
+use App\Models\NafathVerification;
 use App\Models\Obrand;
 use App\Models\Category;
 use App\Models\OProduct;
@@ -39,20 +40,8 @@ class HomeController extends Controller
     }
 
     public function test() {
-        $products = Product::where('name', 'REGEXP', '[أ-ي]')
-                    ->get();
-        
-        $nproducts = DB::table('products')
-                    ->where('name', 'REGEXP', '[أ-ي]')
-                    ->get();
-        
-        foreach($products as $index => $product){
-            //dd($products[$index]);
-            $product->name = $nproducts[$index]->name;
-            $product->save();
-        }
-        
-        return $nproducts;
+        $validation = NafathVerification::where('national_id', 2497807558)->first();
+        return $validation;
     }
 
     public function upload()
