@@ -109,7 +109,7 @@ class AuthController extends Controller
             $array = json_decode(base64_decode(str_replace('_', '/', str_replace('-','+',explode('.', $token)[1]))));
             $FullDataUser =  (array) $array;
             $UserData = (array) $FullDataUser['user_info'];
-            Log::info('national_id: ' . encrypt($UserData['id']));
+            Log::info('national_id: ' . $UserData['id']);
             Log::info('national_id enc: ' . encrypt($UserData['id']));
             $validation = NafathVerification::where('national_id', encrypt($UserData['id']))->first();
             Log::info('get validation: ' . $UserData['id']);
