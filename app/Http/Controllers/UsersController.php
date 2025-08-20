@@ -56,7 +56,7 @@ class UsersController extends Controller
                         return [
                             "payment_id" => $sp->transaction_id,
                             "reference_id" => $sp->id,
-                            "name_shop" => $sp->seller->shop->name ?? 'Unknown',
+                            "name_shop" => "freedooo",
                             "installment_number" => $sp->installment_number,
                             "current_installment" => $sp->is_current_installment,
                             "date" => Carbon::parse($sp->due_date)->format('M d, Y'),
@@ -244,7 +244,7 @@ class UsersController extends Controller
                         return [
                             "payment_id" => $sp->transaction_id,
                             "reference_id" => $sp->id,
-                            "name_shop" => $sp->seller->shop->name ?? 'Unknown',
+                            "name_shop" => "omar",
                             "installment_number" => (int)$sp->instalment_number,
                             'current_installment' => $sp->due_date  <= $currentDate && $sp->payment_status != 'paid' ? true : false,
                             "date" => Carbon::parse($sp->due_date)->format('M d, Y'),
@@ -569,7 +569,7 @@ class UsersController extends Controller
             return [
                 'payment_id'         => (string) $p->uuid,
                 'reference_id'       => (int) $p->id, // أرقام مثل العينة (10/11/12). بدّلها لو تبي مرجع آخر.
-                'name_shop'          => $p->seller->shop->name ?? 'Unknown',,
+                'name_shop'          => 'omar',
                 'installment_number' => (int) $p->instalment_number,
                 'current_installment'=> ($p->uuid === $firstUpcomingUuid),
                 'date'               => $due ? $due->format('M d, Y') : null,
