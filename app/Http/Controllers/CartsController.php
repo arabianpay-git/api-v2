@@ -235,12 +235,7 @@ class CartsController extends Controller
 
             return $this->returnData($data, 'Cart fetched successfully');
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'errNum' => 'E500',
-                'msg' => 'Failed to fetch cart: '.$e->getMessage(),
-                'data' => null
-            ], 500);
+            $this->returnData([], 'Cart not found.');
         }
     }
     
