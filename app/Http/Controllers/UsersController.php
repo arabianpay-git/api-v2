@@ -466,8 +466,6 @@ class UsersController extends Controller
         return $masked;
     }
     
-
-
     public function getPaymentDetails(Request $request, string $uuid)
     {
         $symbol = 'SR';
@@ -652,6 +650,64 @@ class UsersController extends Controller
             'pending' => 'قيد الانتظار',
             default => 'غير معروف',
         };
+    }
+
+    public function getKyc(Request $request)
+    {
+       $data = [
+            'id' => 1000000000,
+            'business_nature' => [
+                ['id' => 39, 'name' => 'الكماليات'],
+                ['id' => 31, 'name' => 'العصائر الطبيعية'],
+                ['id' => 32, 'name' => 'مغاسل الملابس'],
+                ['id' => 33, 'name' => 'صنع الملبوسات'],
+                ['id' => 34, 'name' => 'بيع اللحوم والدواجن'],
+                ['id' => 35, 'name' => 'تجارة البن والقهوة'],
+                ['id' => 36, 'name' => 'مستلزمات المطاعم والقهاوي'],
+                ['id' => 37, 'name' => 'مشاغل وصالونات'],
+                ['id' => 38, 'name' => 'خدمات لوجستية'],
+                ['id' => 30, 'name' => 'الأثاث والديكور'],
+                ['id' => 40, 'name' => 'منتجات مستعمله'],
+                ['id' => 43, 'name' => 'دعاية واعلان'],
+                ['id' => 44, 'name' => 'للشقق المفروشة والفنادق'],
+                ['id' => 45, 'name' => 'مقاولات'],
+                ['id' => 47, 'name' => 'أعمال السباكة والتدفئة والتكييف'],
+                ['id' => 48, 'name' => 'طبي'],
+                ['id' => 49, 'name' => 'تنظيم المؤتمرات والمعارض'],
+                ['id' => 29, 'name' => 'الفنون والحرف اليدوية'],
+                ['id' => 14, 'name' => 'الجمال والعناية الشخصية'],
+                ['id' => 15, 'name' => 'للمشاتل والحدائق الخارجية'],
+                ['id' => 17, 'name' => 'مواد البناء والديكور'],
+                ['id' => 18, 'name' => 'مطاعم'],
+                ['id' => 19, 'name' => 'المطبخ'],
+                ['id' => 20, 'name' => 'أنشطة الصيدليات'],
+                ['id' => 21, 'name' => 'مستلزمات مكتبية'],
+                ['id' => 23, 'name' => 'منتجات الأطفال'],
+                ['id' => 24, 'name' => 'ورش السيارات'],
+                ['id' => 25, 'name' => 'المنزل'],
+                ['id' => 26, 'name' => 'لتأثيث المكاتب'],
+                ['id' => 27, 'name' => 'مستلزمات الحيوانات الأليفة'],
+                ['id' => 28, 'name' => 'المجوهرات والإكسسوارات'],
+                ['id' => 9,  'name' => 'الالكترونيات والكمبيوترات'],
+                ['id' => 11, 'name' => 'المواد الغذائية والبقالة'],
+                ['id' => 10, 'name' => 'التجارة الكهربائية'],
+            ],
+            'purchasing_volume' => [
+                ['id' => 1, 'name' => '1000 SAR ~ 10000 SAR'],
+                ['id' => 2, 'name' => '10000 SAR ~ 20000 SAR'],
+                ['id' => 3, 'name' => '20000 SAR ~ 40000 SAR'],
+                ['id' => 4, 'name' => '40000 SAR and above'],
+            ],
+            'purchasing_natures' => [
+                ['id' => 1, 'name' => 'Raw Materials Purchasing'],
+                ['id' => 2, 'name' => 'Operational Supplies'],
+                ['id' => 3, 'name' => 'Wholesale or Inventory Replenishment'],
+                ['id' => 4, 'name' => 'Machinery and Equipment'],
+                ['id' => 5, 'name' => 'Other'],
+            ],
+        ];
+
+        return $this->returnData($data, 'KYC data fetched successfully.');
     }
 
 }
