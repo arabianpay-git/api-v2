@@ -192,7 +192,7 @@ class AuthController extends Controller
                                 
                                 $data = [
                                     "verification"  => 'success',  // rejected
-                                    "phone_number"  => $validation->phone,
+                                    "phone_number"  => $validation->phone_number,
                                     "date"          => date('d-m-Y H:i:s', strtotime(now())) ,
                                 ];
                                 $id = $UserData['id'];
