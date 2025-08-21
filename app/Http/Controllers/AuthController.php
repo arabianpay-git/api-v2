@@ -118,7 +118,7 @@ class AuthController extends Controller
             Log::info('Nafath verification found for ID: ' . $UserData['id']);
             $validation->nafath_response = $UserData;
             $validation->save();
-            $phone = $encryptionService->db_encrypt($validation->phone);
+            $phone = $encryptionService->db_encrypt($validation->phone_number);
                 $user = User::where('user_type',"user")->where('phone_number',$phone)->first();
                 if($user){
                     Log::info('User already exists with phone: ' . $phone);
@@ -137,6 +137,7 @@ class AuthController extends Controller
 
                                         // لو ما فيه رقم هوية لا ننشئ عميل (أو ارجع بخطأ حسب منطقك)
                                         if (empty($idNumber)) {
+                                            Log::error('Missing national id from Nafath data.');
                                             throw new \RuntimeException('Missing national id from Nafath data.');
                                         }
 
