@@ -296,6 +296,7 @@ class AuthController extends Controller
         // ✅ Example for real OTP verification (production)
         $otpRecord = Otp::where('phone', $phoneNorm)->where('code', $otp)->where('used', 0)->orderBy('id','DESC')->first();
         if (! $otpRecord) {
+            log('Invalid or expired OTP for phone: ' . $phoneNorm. " otp " . $otp);
             return $this->returnError('Invalid or expired OTP.', 'E401');
         }
 
