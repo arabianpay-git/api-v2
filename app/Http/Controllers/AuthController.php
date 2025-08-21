@@ -302,6 +302,7 @@ class AuthController extends Controller
 
         // Mark OTP as used
         $otpRecord->update(['used' => 1]);
+        Log::info('OTP verified for phone: ' . $phoneNorm . " otp " . $otp . " record " . $otpRecord->id);
 
         $user = User::where('phone_number', $encryptionService->db_encrypt($phone055))
             ->orWhere('phone_number', $encryptionService->db_encrypt($phoneNorm))
@@ -444,7 +445,9 @@ class AuthController extends Controller
         // Mark OTP as used
         $otpRecord->update(['used' => 1]);
 
-        $user = User::where('phone_number', $encryptionService->db_encrypt($phoneNorm))->first();
+        $user = User::where('phone_number', $encryptionService->db_encrypt($phone055))
+            ->orWhere('phone_number', $encryptionService->db_encrypt($phoneNorm))
+            ->first();
         if (! $user) {
             return $this->returnError('User not found.', 'E404');
         }
