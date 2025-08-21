@@ -235,7 +235,7 @@ class CartsController extends Controller
 
             return $this->returnData($data, 'Cart fetched successfully');
         } catch (\Exception $e) {
-            $this->returnData([], 'Cart not found.');
+           return $this->returnData([], 'Cart not found.');
         }
     }
     
