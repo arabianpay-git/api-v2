@@ -311,7 +311,7 @@ class AuthController extends Controller
             return $this->returnError('User not found.', 'E404');
         }
 
-        $user->remember_token = $notificationToken;
+        $user->notification_token = $notificationToken;
         $user->save();
 
         Auth::login($user);
@@ -452,7 +452,7 @@ class AuthController extends Controller
             return $this->returnError('User not found.', 'E404');
         }
 
-        $user->remember_token = $notificationToken;
+        $user->notification_token = $notificationToken;
         $user->save();
 
         Auth::login($user);
