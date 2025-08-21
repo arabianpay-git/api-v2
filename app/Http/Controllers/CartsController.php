@@ -186,7 +186,7 @@ class CartsController extends Controller
                     'status' => false,
                     'errNum' => 'E401',
                     'msg' => 'Unauthenticated.',
-                    'data' => null
+                    'data' => (object)[]
                 ], 401);
             }
 
@@ -194,7 +194,7 @@ class CartsController extends Controller
             $cart = Cart::with('items')->where('user_id', $user->id)->latest()->first();
 
             if (!$cart) {
-               return $this->returnData(null, 'Cart not found.');
+               return $this->returnData((object)[], 'Cart not found.');
             }
 
             // Calculate total discount
@@ -235,7 +235,7 @@ class CartsController extends Controller
 
             return $this->returnData($data, 'Cart fetched successfully');
         } catch (\Exception $e) {
-           return $this->returnData(null, 'Cart not found.');
+           return $this->returnData((object)[], 'Cart not found.');
         }
     }
     
