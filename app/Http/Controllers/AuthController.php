@@ -282,7 +282,7 @@ class AuthController extends Controller
                     "id_number" => $user->identity,
                     "phone" => $user->phone_number,
                     "token" => $token,
-                    "complete" => 1,
+                    "complete" => $user->customer->complete ,
                         "package" => [
                             "slug" => $user->package->slug ?? 'free',
                             "name" => $user->package->name ?? 'Free Package',
@@ -324,7 +324,7 @@ class AuthController extends Controller
                     "id_number" => $user->identity,
                     "phone" => $user->phone_number,
                     "token" => $token,
-                    "complete" => 1,
+                    "complete" => $user->customer->complete ?? 0,
                         "package" => [
                             "slug" => $user->package->slug ?? 'free',
                             "name" => $user->package->name ?? 'Free Package',
@@ -435,7 +435,7 @@ class AuthController extends Controller
                     "id_number" => $user->identity,
                     "phone" => $user->phone_number,
                     "token" => $token,
-                    "complete" => 1,
+                    "complete" => $user->customer->complete,
                         "package" => [
                             "slug" => $user->package->slug ?? 'free',
                             "name" => $user->package->name ?? 'Free Package',
@@ -477,7 +477,7 @@ class AuthController extends Controller
                     "id_number" => $user->identity,
                     "phone" => $user->phone_number,
                     "token" => $token,
-                    "complete" => 1,
+                    "complete" => $user->customer->complete ,
                         "package" => [
                             "slug" => $user->package->slug ?? 'free',
                             "name" => $user->package->name ?? 'Free Package',
