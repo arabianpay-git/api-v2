@@ -194,7 +194,7 @@ class CartsController extends Controller
             $cart = Cart::with('items')->where('user_id', $user->id)->latest()->first();
 
             if (!$cart) {
-                $this->returnData([], 'Cart not found.');
+               return $this->returnData([], 'Cart not found.');
             }
 
             // Calculate total discount
