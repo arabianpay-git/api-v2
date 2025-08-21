@@ -55,7 +55,7 @@ class AuthController extends Controller
             // If an unexpired OTP already exists, you could optionally resend the same OTP,
             // or just increment the sends count
             DB::table('otps')->where('id', $existingOtp->id)->increment('sends');
-            logger("OTP reused for {$phone}: {$existingOtp->code}");
+            Log::info("OTP reused for {$phone}: {$existingOtp->code}");
 
             return $this->returnData([], __('api.otp_sent'));
 
@@ -74,7 +74,7 @@ class AuthController extends Controller
         ]);
 
         // Log OTP for development/debugging (replace with SMS gateway in production)
-        logger("OTP generated for {$phone}: {$otpCode}");
+        Log::info("OTP generated for {$phone}: {$otpCode}");
 
         if($phone != self::DUMMY_PHONE) {
            $this->sendSmsViaOurSms([$phone], "Your OTP code is: {$otpCode}");
@@ -216,7 +216,7 @@ class AuthController extends Controller
                                 ]);
 
                                 // Log OTP for development/debugging (replace with SMS gateway in production)
-                                logger("OTP generated for {$validation->phone_number}: {$otpCode}");
+                                Log::info("OTP generated for {$validation->phone_number}: {$otpCode}");
 
                                 // يمكنك إرسال الـ OTP برسالة SMS، أو فقط تسجيله في الـ Log للتجربة
                                 Log::info('OTP for ' . $validation->phone_number . ': ' . $otpCode);
@@ -363,7 +363,7 @@ class AuthController extends Controller
         ]);
 
         // Log OTP for development/debugging (replace with SMS gateway in production)
-        logger("OTP generated for {$phone}: {$otpCode}");
+        Log::info("OTP generated for {$phone}: {$otpCode}");
 
         // يمكنك إرسال الـ OTP برسالة SMS، أو فقط تسجيله في الـ Log للتجربة
         Log::info('OTP for ' . $phone . ': ' . $otpCode);
