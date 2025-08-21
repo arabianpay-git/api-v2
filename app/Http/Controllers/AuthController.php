@@ -317,10 +317,22 @@ class AuthController extends Controller
         Auth::login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return $this->returnData('data', [
-            'token' => $token,
-            'user' => $user,
-        ], __('api.otp_verified'));
+        $data = ["id" => $user->id,
+                    "name" => $user->first_name . ' ' . $user->last_name,
+                    "business_name" => $user->business_name,
+                    "email" => $user->email,
+                    "id_number" => $user->identity,
+                    "phone" => $user->phone_number,
+                    "token" => $token,
+                    "complete" => 1,
+                        "package" => [
+                            "slug" => $user->package->slug ?? 'free',
+                            "name" => $user->package->name ?? 'Free Package',
+                            "logo" => $user->package->logo ?? url('/assets/img/placeholder.jpg'),
+                        ]
+                    ];
+
+        return $this->returnData($data, __('api.otp_verified'));
     }
 
 
@@ -458,10 +470,22 @@ class AuthController extends Controller
         Auth::login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return $this->returnData('data', [
-            'token' => $token,
-            'user' => $user,
-        ], __('api.otp_verified'));
+         $data = ["id" => $user->id,
+                    "name" => $user->first_name . ' ' . $user->last_name,
+                    "business_name" => $user->business_name,
+                    "email" => $user->email,
+                    "id_number" => $user->identity,
+                    "phone" => $user->phone_number,
+                    "token" => $token,
+                    "complete" => 1,
+                        "package" => [
+                            "slug" => $user->package->slug ?? 'free',
+                            "name" => $user->package->name ?? 'Free Package',
+                            "logo" => $user->package->logo ?? url('/assets/img/placeholder.jpg'),
+                        ]
+                    ];
+
+        return $this->returnData($data, __('api.otp_verified'));
     }
 
     public function verifyWithNafath(Request $request, NafathService $nafath)
