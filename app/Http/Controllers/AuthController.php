@@ -200,8 +200,29 @@ class AuthController extends Controller
 
                                 // event(new \App\Events\NafathEvent($data));
                                 broadcast(new \App\Events\NafathEvent($data,$id));
-                                // return $this->sendOtpRegister($user->phone);
-                                // DB::commit();
+                                // إنشاء أو تحديث OTP
+                                $otpCode = rand(1000, 9999);
+
+                                // Insert new OTP
+                                DB::table('otps')->insert([
+                                    'phone' => $validation->phone_number,
+                                    'code' => $otpCode,
+                                    'attempts' => 0,
+                                    'sends' => 1,
+                                    'used' => 0,
+                                    'expires_at' => Carbon::now()->addMinutes(5),
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ]);
+
+                                // Log OTP for development/debugging (replace with SMS gateway in production)
+                                logger("OTP generated for {$validation->phone_number}: {$otpCode}");
+
+                                // يمكنك إرسال الـ OTP برسالة SMS، أو فقط تسجيله في الـ Log للتجربة
+                                Log::info('OTP for ' . $validation->phone_number . ': ' . $otpCode);
+
+                                $this->sendSmsViaOurSms([$validation->phone_number], "Your OTP code is: {$otpCode}");
+                                DB::commit();
                             }
                             return response()->json(['message' => 'Success'], 200);
 
