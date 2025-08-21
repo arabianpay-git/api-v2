@@ -261,7 +261,7 @@ class AuthController extends Controller
 
         // Dummy shortcut for development testing
         if (env('APP_ENV') === 'local' && $phone === self::DUMMY_PHONE && $otp === self::DUMMY_CODE) {
-            $user = User::where('phone_number', $encryptionService->db_encrypt($phone055))
+            $user = User::where('phone_number', $encryptionService->db_encrypt((int)$phone055))
             ->orWhere('phone_number', $encryptionService->db_encrypt($phoneNorm))
             ->first();
             if (! $user) {
