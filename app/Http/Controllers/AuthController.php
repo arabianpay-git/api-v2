@@ -377,42 +377,83 @@ class AuthController extends Controller
 
     public function verifyRegistration(Request $request)
     {
-        $encryptionService = new EncryptionService();
+         $encryptionService = new EncryptionService();
 
-        // فك التشفير
-        $phone = $encryptionService->decrypt($request->input('phone'));
+        // Decrypt values from the request
+        $phone = '966'.$encryptionService->decrypt($request->input('phone_number'));
         $otp = $encryptionService->decrypt($request->input('otp'));
+        $notificationToken = $encryptionService->decrypt($request->input('notification_token'));
 
-        // التحقق من صحة الفورم
-        Validator::make([
-            'phone' => $phone,
+        // Validate decrypted data
+        $validated = Validator::make([
+            'phone_number' => $phone,
             'otp' => $otp,
         ], [
-            'phone' => 'required|regex:/^\d{9,15}$/',
-            'otp' => 'required|digits:6',
+            'phone_number' => 'required|regex:/^\d{9,15}$/',
+            'otp' => 'required|digits:4',
         ])->validate();
 
-        // تحقق من الـ OTP
-        $otpRecord = Otp::where('phone', $phone)
-            ->where('code', $otp)
-            ->where('used', 0)
-            ->where('expires_at', '>', now())
-            ->first();
+        $phone055 = $this->denormalizePhoneNumber($phone);
+        $phoneNorm = $this->normalizePhoneNumber($phone);
 
-        if (! $otpRecord) {
-            return response()->json([
-                'status' => false,
-                'errNum' => 'E401',
-                'msg' => 'Invalid or expired OTP.',
-            ], 401);
+        // Dummy shortcut for development testing
+        if (env('APP_ENV') === 'local' && $phone === self::DUMMY_PHONE && $otp === self::DUMMY_CODE) {
+            $user = User::where('phone_number', $encryptionService->db_encrypt($phone055))
+            ->orWhere('phone_number', $encryptionService->db_encrypt($phoneNorm))
+            ->first();
+            if (! $user) {
+                return response()->json([
+                    'status' => false,
+                    'errNum' => 'E404',
+                    'msg' => 'Dummy user not found in database.',
+                ], 404);
+            }
+
+            Auth::login($user);
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            $data = ["id" => $user->id,
+                    "name" => $user->first_name . ' ' . $user->last_name,
+                    "business_name" => $user->business_name,
+                    "email" => $user->email,
+                    "id_number" => $user->identity,
+                    "phone" => $user->phone_number,
+                    "token" => $token,
+                    "complete" => 1,
+                        "package" => [
+                            "slug" => $user->package->slug ?? 'free',
+                            "name" => $user->package->name ?? 'Free Package',
+                            "logo" => $user->package->logo ?? url('/assets/img/placeholder.jpg'),
+                        ]
+                    ];
+                
+            return $this->returnData($data, __('api.otp_verified'));
         }
 
+        // ✅ Example for real OTP verification (production)
+        $otpRecord = Otp::where('phone', $phoneNorm)->where('code', $otp)->where('used', 0)->first();
+        if (! $otpRecord) {
+            return $this->returnError('Invalid or expired OTP.', 'E401');
+        }
+
+        // Mark OTP as used
         $otpRecord->update(['used' => 1]);
 
-        // بعد نجاح OTP، نحصل على رقم الهوية
-        $idNumber = $otpRecord->id_number;
+        $user = User::where('phone_number', $phoneNorm)->first();
+        if (! $user) {
+            return $this->returnError('User not found.', 'E404');
+        }
 
-        return $this->returnData(['id_number'=>$idNumber], 'OTP verified successfully.');
+        $user->notification_token = $notificationToken;
+        $user->save();
+
+        Auth::login($user);
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return $this->returnData('data', [
+            'token' => $token,
+            'user' => $user,
+        ], __('api.otp_verified'));
     }
 
     public function verifyWithNafath(Request $request, NafathService $nafath)
