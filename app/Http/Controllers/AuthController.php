@@ -126,7 +126,7 @@ class AuthController extends Controller
                 }
 
 
-                $user = $this->createUserFromNafath($UserData, $phone);
+                $user = $this->createUserFromNafath($UserData, $validation->phone_number);
                 if ($user) {
                     Log::info('Creating or updating customer from Nafath data.');
                                 try {
