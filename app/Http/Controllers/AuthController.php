@@ -116,7 +116,7 @@ class AuthController extends Controller
 
             if(isset($validation)){
             Log::info('Nafath verification found for ID: ' . $UserData['id']);
-            $validation->nafath_response = json_encode($UserData);
+            $validation->nafath_response = $UserData;
             $validation->save();
             $phone = $encryptionService->db_encrypt($validation->phone);
                 $user = User::where('user_type',"user")->where('phone_number',$phone)->first();
@@ -190,7 +190,7 @@ class AuthController extends Controller
                                     // return response()->json(['status'=>false,'errNum'=>'E500','msg'=>'Could not create customer'], 500);
                                 }
                                 
-$data = [
+                                $data = [
                                     "verification"  => 'success',  // rejected
                                     "phone_number"  => $validation->phone,
                                     "date"          => date('d-m-Y H:i:s', strtotime(now())) ,
