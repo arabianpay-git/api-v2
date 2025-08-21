@@ -243,7 +243,7 @@ class AuthController extends Controller
         $encryptionService = new EncryptionService();
 
         // Decrypt values from the request
-        $phone = '966'.$encryptionService->decrypt($request->input('phone_number'));
+        $phone = $encryptionService->decrypt($request->input('phone_number'));
         $otp = $encryptionService->decrypt($request->input('otp'));
         $notificationToken = $encryptionService->decrypt($request->input('notification_token'));
 
@@ -294,9 +294,9 @@ class AuthController extends Controller
         }
 
         // ✅ Example for real OTP verification (production)
-        $otpRecord = Otp::where('phone', $phone055)->where('code', $otp)->where('used', 0)->orderBy('id','DESC')->first();
+        $otpRecord = Otp::where('phone', $phoneNorm)->where('code', $otp)->where('used', 0)->orderBy('id','DESC')->first();
         if (! $otpRecord) {
-            Log::info('Invalid or expired OTP for phone: ' . $phone055. " otp " . $otp);
+            Log::info('Invalid or expired OTP for phone: ' . $phoneNorm. " otp " . $otp);
             return $this->returnError('Invalid or expired OTP.', 'E401');
         }
 
@@ -384,7 +384,7 @@ class AuthController extends Controller
          $encryptionService = new EncryptionService();
 
         // Decrypt values from the request
-        $phone = '966'.$encryptionService->decrypt($request->input('phone_number'));
+        $phone = $encryptionService->decrypt($request->input('phone_number'));
         $otp = $encryptionService->decrypt($request->input('otp'));
         $notificationToken = $encryptionService->decrypt($request->input('notification_token'));
 
@@ -435,13 +435,13 @@ class AuthController extends Controller
         }
 
         // ✅ Example for real OTP verification (production)
-        $otpRecord = Otp::where('phone', $phone055)->where('code', $otp)->where('used', 0)->orderBy('id','DESC')->first();
+        $otpRecord = Otp::where('phone', $phoneNorm)->where('code', $otp)->where('used', 0)->orderBy('id','DESC')->first();
         if (! $otpRecord) {
-            Log::info('Invalid or expired OTP for phone: ' . $phone055. " otp " . $otp);
+            Log::info('Invalid or expired OTP for phone: ' . $phoneNorm. " otp " . $otp);
             return $this->returnError('Invalid or expired OTP.', 'E401');
         }
 
-        Log::info('OTP verified for phone: ' . $phone055 . " otp " . $otp . " record " . $otpRecord->id);
+        Log::info('OTP verified for phone: ' . $phoneNorm . " otp " . $otp . " record " . $otpRecord->id);
         // Mark OTP as used
         $otpRecord->update(['used' => 1]);
 
