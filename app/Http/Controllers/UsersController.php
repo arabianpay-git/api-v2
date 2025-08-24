@@ -21,6 +21,7 @@ use Carbon\Carbon;
 use DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Log;
 
 class UsersController extends Controller
 {
@@ -708,6 +709,11 @@ class UsersController extends Controller
         ];
 
         return $this->returnData($data, 'KYC data fetched successfully.');
+    }
+
+    public function setKyc(Request $request)
+    {
+        Log::info('KYC Data Received: ', $request->all());
     }
 
 }
