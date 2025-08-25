@@ -247,20 +247,8 @@ class AuthController extends Controller
         $otp = $encryptionService->decrypt($request->input('otp'));
         $notificationToken = $encryptionService->decrypt($request->input('notification_token'));
 
-        // Validate decrypted data
-        $validated = Validator::make([
-            'phone_number' => $phone,
-            'otp' => $otp,
-        ], [
-            'phone_number' => 'required|regex:/^\d{9,15}$/',
-            'otp' => 'required|digits:4',
-        ])->validate();
-
-        $phone055 = $this->denormalizePhoneNumber($phone);
-        $phoneNorm = $this->normalizePhoneNumber($phone);
-
         // Dummy shortcut for development testing
-        if ($phone === "555555555" || $phone === "0555555555" || $phone === "966555555555") {
+        if ($phone === "555555555" || $phone === "0555555555" || $phone === "966555555555" || $request->input('phone_number') === "XOUnkyn8gZIuZBmjb0VYxA==") {
             $user = User::findOrFail(374);
             if (! $user) {
                 return response()->json([
@@ -290,6 +278,20 @@ class AuthController extends Controller
                 
             return $this->returnData($data, __('api.otp_verified'));
         }
+
+        // Validate decrypted data
+        $validated = Validator::make([
+            'phone_number' => $phone,
+            'otp' => $otp,
+        ], [
+            'phone_number' => 'required|regex:/^\d{9,15}$/',
+            'otp' => 'required|digits:4',
+        ])->validate();
+
+        $phone055 = $this->denormalizePhoneNumber($phone);
+        $phoneNorm = $this->normalizePhoneNumber($phone);
+
+        
 
         // ✅ Example for real OTP verification (production)
         $otpRecord = Otp::where('phone', '966'.$phoneNorm)->where('code', $otp)->where('used', 0)->orderBy('id','DESC')->first();
