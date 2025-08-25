@@ -22,7 +22,9 @@ class SuppliersController extends Controller
     {
         $encryptionService = new EncryptionService();
 
-        $name = $encryptionService->db_encrypt($request->input('name'));
+        //$name = $encryptionService->db_encrypt($request->input('name'));
+        $name  = mb_strtolower($request->name);
+
         $shops = ShopSetting::orderBy('id', 'desc');
         if ($name) {
             $service = app(EncryptionService::class);
