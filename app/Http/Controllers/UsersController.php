@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\EncryptionService;
 use App\Models\AdsSlider;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\Customer;
 use App\Models\CustomerCreditLimit;
 use App\Models\Merchant;
 use App\Models\Order;
@@ -714,6 +716,47 @@ class UsersController extends Controller
     public function setKyc(Request $request)
     {
         Log::info('KYC Data Received: ', $request->all());
+        $request->validate([
+            'data' => 'required|array',
+        ]);
+        $userId = $request->user()->id;
+        $encryptionService = new EncryptionService(); // تأكّد إن عندك خدمة فك تشفير
+
+        $data = $request->input('data');
+
+        // نفك التشفير لكل قيمة موجودة
+        $updateData = [
+            'cr_number'               => isset($data['cr_number']) ? $encryptionService->decrypt($data['cr_number']) : null,
+            'tax_number'              => isset($data['tax_number']) ? $encryptionService->decrypt($data['tax_number']) : null,
+            'business_category_id'    => isset($data['category_id']) ? $encryptionService->decrypt($data['category_id']) : null,
+            'purchasing_natures'      => isset($data['purchasing_natures']) ? $encryptionService->decrypt($data['purchasing_natures']) : null,
+            'purchasing_volume'       => isset($data['purchasing_volume']) ? $encryptionService->decrypt($data['purchasing_volume']) : null,
+            'other_purchasing_natures'=> isset($data['other_purchasing_natures']) ? $encryptionService->decrypt($data['other_purchasing_natures']) : null,
+            'date_of_birth'           => isset($data['date_of_birth']) ? $encryptionService->decrypt($data['date_of_birth']) : null,
+            'complete'          => 1,
+        ];
+
+        // بعض الحقول ما موجودة في جدول customers، زي trade_name و email
+        // تقدر تحفظهم في جدول users المرتبط بالـ customer
+        $userData = [
+            'email'      => isset($data['email']) ? $encryptionService->decrypt($data['email']) : null,
+            'name'       => isset($data['trade_name']) ? $encryptionService->decrypt($data['trade_name']) : null,
+        ];
+
+        // نحدّث بيانات العميل
+        $customer = Customer::where('user_id',$userId)->first();
+        $customer->update($updateData);
+
+        // نحدّث بيانات المستخدم المرتبط
+        if ($customer->user) {
+            $customer->user->update(array_filter($userData));
+        }
+
+        return response()->json([
+            'status' => true,
+            'msg'    => 'Customer updated successfully',
+            'data'   => $customer->fresh('user'),
+        ]);
     }
 
 }
