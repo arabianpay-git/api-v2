@@ -46,6 +46,8 @@ class SuppliersController extends Controller
                         'rating' => 0, // You can replace with actual rating field if available
                     ];
                 });
+
+                return $this->returnData($data, 'Suppliers retrieved successfully.');
         }
 
         $shops = $shops->where('name','!=','')
