@@ -34,20 +34,6 @@ class SuppliersController extends Controller
                         return false;
                     }
                 });
-
-                $data = $shops->map(function ($shop) {
-                    return [
-                        'id' => $shop->id,
-                        'slug' => str()->slug($shop->name) . '-' . $shop->id,
-                        'user_id' => $shop->user_id,
-                        'name' => $shop->name ?? 'Unknown',
-                        'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
-                        'cover' => asset('assets/img/placeholder.jpg'),
-                        'rating' => 0, // You can replace with actual rating field if available
-                    ];
-                });
-
-                return $this->returnData($data, 'Suppliers retrieved successfully.');
         }
 
         $shops = $shops->where('name','!=','')
