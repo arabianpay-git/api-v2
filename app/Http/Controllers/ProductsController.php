@@ -34,6 +34,7 @@ class ProductsController extends Controller
         ])
         ->with(['brand:id,name'])
         ->where('published', 'published')
+        ->where('approved', 'approved')
         ->whereNotNull('name')
         ->whereNotNull('thumbnail');
 
