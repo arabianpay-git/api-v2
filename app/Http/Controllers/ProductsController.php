@@ -20,6 +20,7 @@ class ProductsController extends Controller
 
     public function index(Request $request)
     {
+        
         $productsQuery = Product::select([
             'id',
             'name',

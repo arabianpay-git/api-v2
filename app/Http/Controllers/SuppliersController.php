@@ -20,7 +20,7 @@ class SuppliersController extends Controller
    public function getSuppliers()
     {
         $shops = ShopSetting::orderBy('id', 'asc')->where('name','!=','')
-        ->where('name','!=',null)->get();
+        ->where('name','!=',null)->orderBy('id','DESC')->get();
 
         $data = $shops->map(function ($shop) {
             return [
