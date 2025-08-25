@@ -103,6 +103,7 @@ class UsersController extends Controller
         ->where('name','!=',"")
         ->limit(20)
         ->get()
+        ->orderBy('id','DESC')
         ->map(function ($shop) {
             return [
                 "id" => $shop->id,
