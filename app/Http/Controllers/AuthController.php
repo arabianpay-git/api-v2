@@ -260,7 +260,7 @@ class AuthController extends Controller
         $phoneNorm = $this->normalizePhoneNumber($phone);
 
         // Dummy shortcut for development testing
-        if ($phone === "551011969" && $otp === "4444") {
+        if ($phone === "555555555" || $phone === "0555555555" || $phone === "966555555555") {
             $user = User::findOrFail(374);
             if (! $user) {
                 return response()->json([
