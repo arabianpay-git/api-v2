@@ -41,7 +41,7 @@ class SuppliersController extends Controller
             $service = new EncryptionService();
 
             $data = $rows->map(function ($row) use ($service) {
-                $plain = self::safeDecrypt($service, $row->name);
+                $plain = $service->db_decrypt($row->name);
                 $plain = $plain ?: 'Unknown';
 
                 return [
