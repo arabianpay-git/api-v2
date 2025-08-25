@@ -19,7 +19,13 @@ class SuppliersController extends Controller
     use ApiResponseTrait;
    public function getSuppliers()
     {
-        $shops = ShopSetting::orderBy('id', 'asc')->where('name','!=','')
+        $name = $_REQUEST['name'] ?? '';
+        $shops = ShopSetting::orderBy('id', 'desc');
+        if ($name) {
+            $shops = $shops->where('name', 'like', '%' . $name . '%');
+        }
+
+        $shops = $shops->where('name','!=','')
         ->where('name','!=',null)->orderBy('id','DESC')->get();
 
         $data = $shops->map(function ($shop) {
