@@ -21,8 +21,8 @@ class SuppliersController extends Controller
    public function getSuppliers(Request $request)
     {
         $encryptionService = new EncryptionService();
-
-        $name = $encryptionService->db_encrypt($request->input('name'));
+        
+        $name = $request->input('name');
         $shops = ShopSetting::orderBy('id', 'desc');
         if ($name) {
             $shops = $shops->where('name', 'like', '%' . $name . '%');
