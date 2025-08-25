@@ -25,7 +25,16 @@ class SuppliersController extends Controller
         $name = $encryptionService->db_encrypt($request->input('name'));
         $shops = ShopSetting::orderBy('id', 'desc');
         if ($name) {
-            $shops = $shops->where('name', 'like', '%' . $name . '%');
+            $service = app(EncryptionService::class);
+                $shops = $shops->filter(function ($row) use ($service, $name) {
+                    try {
+                        $plain = mb_strtolower($service->decrypt($row->name));
+                        return str_contains($plain, $name);
+                    } catch (\Throwable $e) {
+                        return false;
+                    }
+                });
+            //$shops = $shops->where('name', 'like', '%' . $name . '%');
         }
 
         $shops = $shops->where('name','!=','')
