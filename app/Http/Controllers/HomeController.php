@@ -462,6 +462,7 @@ class HomeController extends Controller
         ->where('name','!=',null)
         ->where('name','!=',"")
         ->limit(10) // No rating field, so limit only
+        ->orderBy('id','DESC')
         ->get()
         ->map(function ($shop) {
             return [
