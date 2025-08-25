@@ -26,7 +26,7 @@ class SuppliersController extends Controller
         $shops = ShopSetting::orderBy('id', 'desc');
         if ($name) {
             $service = app(EncryptionService::class);
-                $shops = $shops->filter(function ($row) use ($service, $name) {
+                $shops = ShopSetting::all()->filter(function ($row) use ($service, $name) {
                     try {
                         $plain = mb_strtolower($service->decrypt($row->name));
                         return str_contains($plain, $name);
@@ -34,7 +34,6 @@ class SuppliersController extends Controller
                         return false;
                     }
                 });
-            //$shops = $shops->where('name', 'like', '%' . $name . '%');
         }
 
         $shops = $shops->where('name','!=','')
