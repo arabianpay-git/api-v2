@@ -14,7 +14,6 @@ use App\Models\Slider;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Str;
 
 class SuppliersController extends Controller
 {
@@ -24,40 +23,34 @@ class SuppliersController extends Controller
         
 
         //$name = $encryptionService->db_encrypt($request->input('name'));
-        $q = trim((string) $request->input('name', ''));
-        $qLower = mb_strtolower($q, 'UTF-8');
         $name  = mb_strtolower($request->name);
 
         $shops = ShopSetting::orderBy('id', 'desc');
-        // لا تبحث لو ما في كلمة
-        if ($qLower === '') {
-            $rows = ShopSetting::query()
-                ->select(['id','user_id','name','logo'])
-                ->whereNotNull('name')
-                ->orderByDesc('id')
-                ->limit(50)
-                ->get();
-
+        if ($name) {
+            //$service = app(EncryptionService::class);
             $service = new EncryptionService();
+                $shops = ShopSetting::all()->filter(function ($row) use ($service, $name) {
+                    try {
+                        $plain = mb_strtolower($service->db_decrypt($row->name));
+                        return str_contains($plain, $name);
+                    } catch (\Throwable $e) {
+                        return false;
+                    }
+                });
 
-            $data = $rows->map(function ($row) use ($service) {
-                $plain = $service->db_decrypt($row->name);
-                $plain = $plain ?: 'Unknown';
+                $data = $shops->map(function ($shop) {
+                    return [
+                        'id' => $shop->id,
+                        'slug' => str()->slug($shop->name) . '-' . $shop->id,
+                        'user_id' => $shop->user_id,
+                        'name' => $shop->name ?? 'Unknown',
+                        'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
+                        'cover' => asset('assets/img/placeholder.jpg'),
+                        'rating' => 0, // You can replace with actual rating field if available
+                    ];
+                });
 
-                return [
-                    'id'      => $row->id,
-                    'slug'    => Str::slug($plain) . '-' . $row->id,
-                    'user_id' => $row->user_id,
-                    'name'    => $plain,
-                    'logo'    => $row->logo
-                        ? ('https://partners.arabianpay.net' . $row->logo)
-                        : 'https://api.arabianpay.net/public/placeholder.jpg',
-                    'cover'   => asset('assets/img/placeholder.jpg'),
-                    'rating'  => 0,
-                ];
-            })->values();
-
-            return $this->returnData($data, 'Suppliers retrieved successfully.');
+                return $this->returnData($data, 'Suppliers retrieved successfully.');
         }
 
         $shops = $shops->where('name','!=','')
