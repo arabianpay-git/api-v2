@@ -20,14 +20,15 @@ class SuppliersController extends Controller
     use ApiResponseTrait;
    public function getSuppliers(Request $request)
     {
-        $encryptionService = new EncryptionService();
+        
 
         //$name = $encryptionService->db_encrypt($request->input('name'));
         $name  = mb_strtolower($request->name);
 
         $shops = ShopSetting::orderBy('id', 'desc');
         if ($name) {
-            $service = app(EncryptionService::class);
+            //$service = app(EncryptionService::class);
+            $service = new EncryptionService();
                 $shops = ShopSetting::all()->filter(function ($row) use ($service, $name) {
                     try {
                         $plain = mb_strtolower($service->decrypt($row->name));
