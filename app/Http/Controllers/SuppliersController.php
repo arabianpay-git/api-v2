@@ -19,32 +19,66 @@ class SuppliersController extends Controller
 {
     use ApiResponseTrait;
    public function getSuppliers(Request $request)
-    {
-        $encryptionService = new EncryptionService();
-        
-        $name = $request->input('name');
-        $shops = ShopSetting::orderBy('id', 'desc');
-        if ($name) {
-            $shops = $shops->where('name', 'like', '%' . $name . '%');
+{
+    $name = trim((string) $request->input('name', ''));
+    $q    = mb_strtolower($name, 'UTF-8');
+
+    $base = ShopSetting::query()
+        ->whereNotNull('name')
+        ->orderByDesc('id');
+
+    if ($q !== '') {
+        $service = new EncryptionService();
+        $ids = [];
+
+        ShopSetting::query()
+            ->select(['id','name'])
+            ->whereNotNull('name')
+            ->orderBy('id')               // مهم مع chunkById
+            ->chunkById(500, function ($rows) use ($service, $q, &$ids) {
+                foreach ($rows as $row) {
+                    try {
+                        $plain = $service->decrypt($row->name);
+                        if ($plain && mb_stripos($plain, $q, 0, 'UTF-8') !== false) {
+                            $ids[] = $row->id;
+                        }
+                    } catch (\Throwable $e) {
+                        // تجاهل السجل المعطوب
+                    }
+                }
+            });
+
+        // إن ما فيه نتائج، رجّع فاضي مباشرة
+        if (empty($ids)) {
+            return $this->returnData([], 'No suppliers found.');
         }
 
-        $shops = $shops->where('name','!=','')
-        ->where('name','!=',null)->orderBy('id','DESC')->get();
-
-        $data = $shops->map(function ($shop) {
-            return [
-                'id' => $shop->id,
-                'slug' => str()->slug($shop->name) . '-' . $shop->id,
-                'user_id' => $shop->user_id,
-                'name' => $shop->name ?? 'Unknown',
-                'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
-                'cover' => asset('assets/img/placeholder.jpg'),
-                'rating' => 0, // You can replace with actual rating field if available
-            ];
-        });
-
-        return $this->returnData($data, 'Suppliers retrieved successfully.');
+        $base->whereIn('id', $ids);
     }
+
+    $shops = $base->get();
+
+    // فك التشفير للعرض والـ slug
+    $service = $service ?? new EncryptionService();
+    $data = $shops->map(function ($shop) use ($service) {
+        $plain = 'Unknown';
+        try { $plain = $service->decrypt($shop->name) ?: 'Unknown'; } catch (\Throwable $e) {}
+
+        return [
+            'id'      => $shop->id,
+            'slug'    => \Illuminate\Support\Str::slug($plain) . '-' . $shop->id,
+            'user_id' => $shop->user_id,
+            'name'    => $plain,
+            'logo'    => $shop->logo
+                ? ('https://partners.arabianpay.net'.$shop->logo)
+                : 'https://api.arabianpay.net/public/placeholder.jpg',
+            'cover'   => asset('assets/img/placeholder.jpg'),
+            'rating'  => 0,
+        ];
+    });
+
+    return $this->returnData($data, 'Suppliers retrieved successfully.');
+}
 
     public function getSupplierDetails($id)
     {
