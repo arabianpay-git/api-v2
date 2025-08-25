@@ -14,104 +14,69 @@ use App\Models\Slider;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Str;
 
 class SuppliersController extends Controller
 {
     use ApiResponseTrait;
-   use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use App\Models\ShopSetting;
+   public function getSuppliers(Request $request)
+    {
+        
 
-public function getSuppliers(Request $request)
-{
-    $q        = trim((string) $request->input('name', ''));
-    $qLower   = mb_strtolower($q);
-    $page     = max(1, (int) $request->input('page', 1));
-    $perPage  = min(50, max(5, (int) $request->input('per_page', 20)));
+        //$name = $encryptionService->db_encrypt($request->input('name'));
+        $q = trim((string) $request->input('name', ''));
+        $qLower = mb_strtolower($q, 'UTF-8');
+        $name  = mb_strtolower($request->name);
 
-    $service  = new EncryptionService();
+        $shops = ShopSetting::orderBy('id', 'desc');
+        // لا تبحث لو ما في كلمة
+        if ($qLower === '') {
+            $rows = ShopSetting::query()
+                ->select(['id','user_id','name','logo'])
+                ->whereNotNull('name')
+                ->orderByDesc('id')
+                ->limit(50)
+                ->get();
 
-    // هنجهز كولكشن النتائج
-    $matches = collect();
+            $service = new EncryptionService();
 
-    // بنقلل الأعمدة المسحوبة من DB
-    $baseQuery = ShopSetting::query()
-        ->select(['id','user_id','name','logo'])
-        ->whereNotNull('name')
-        ->orderByDesc('id');
+            $data = $rows->map(function ($row) use ($service) {
+                $plain = self::safeDecrypt($service, $row->name);
+                $plain = $plain ?: 'Unknown';
 
-    if ($qLower !== '') {
-        // نفلتر يدوياً بعد فك التشفير باستخدام chunkById لتقليل الذاكرة
-        $baseQuery->chunkById(500, function ($chunk) use ($service, $qLower, &$matches) {
-            foreach ($chunk as $row) {
-                try {
-                    $plain = $service->decrypt($row->name);
-                    if ($plain === null || $plain === '') continue;
+                return [
+                    'id'      => $row->id,
+                    'slug'    => Str::slug($plain) . '-' . $row->id,
+                    'user_id' => $row->user_id,
+                    'name'    => $plain,
+                    'logo'    => $row->logo
+                        ? ('https://partners.arabianpay.net' . $row->logo)
+                        : 'https://api.arabianpay.net/public/placeholder.jpg',
+                    'cover'   => asset('assets/img/placeholder.jpg'),
+                    'rating'  => 0,
+                ];
+            })->values();
 
-                    // بحث جزئي بدون حساسية لحالة الأحرف
-                    if (mb_stripos($plain, $qLower) !== false) {
-                        $matches->push([
-                            'id'      => $row->id,
-                            'slug'    => Str::slug($plain) . '-' . $row->id,
-                            'user_id' => $row->user_id,
-                            'name'    => $plain,
-                            'logo'    => $row->logo
-                                ? ('https://partners.arabianpay.net' . $row->logo)
-                                : 'https://api.arabianpay.net/public/placeholder.jpg',
-                            'cover'   => asset('assets/img/placeholder.jpg'),
-                            'rating'  => 0,
-                        ]);
-                    }
-                } catch (\Throwable $e) {
-                    // تجاهل السجلات التي تفشل في فك التشفير
-                    continue;
-                }
-            }
+            return $this->returnData($data, 'Suppliers retrieved successfully.');
+        }
+
+        $shops = $shops->where('name','!=','')
+        ->where('name','!=',null)->orderBy('id','DESC')->get();
+
+        $data = $shops->map(function ($shop) {
+            return [
+                'id' => $shop->id,
+                'slug' => str()->slug($shop->name) . '-' . $shop->id,
+                'user_id' => $shop->user_id,
+                'name' => $shop->name ?? 'Unknown',
+                'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
+                'cover' => asset('assets/img/placeholder.jpg'),
+                'rating' => 0, // You can replace with actual rating field if available
+            ];
         });
 
-        // ترقيم النتائج في الذاكرة
-        $total   = $matches->count();
-        $results = $matches->forPage($page, $perPage)->values();
-
-        return $this->returnData([
-            'data'       => $results,
-            'page'       => $page,
-            'per_page'   => $perPage,
-            'total'      => $total,
-            'total_pages'=> (int) ceil($total / $perPage),
-        ], 'Suppliers retrieved successfully.');
+        return $this->returnData($data, 'Suppliers retrieved successfully.');
     }
-
-    // بدون كلمة بحث: رجّع أحدث السجلات (مع فك تشفير الاسم قبل الإرجاع)
-    $rows = $baseQuery->paginate($perPage, ['*'], 'page', $page);
-
-    $data = collect($rows->items())->map(function ($row) use ($service) {
-        $plain = null;
-        try { $plain = $service->decrypt($row->name); } catch (\Throwable $e) {}
-        $plain = $plain ?: 'Unknown';
-
-        return [
-            'id'      => $row->id,
-            'slug'    => Str::slug($plain) . '-' . $row->id,
-            'user_id' => $row->user_id,
-            'name'    => $plain,
-            'logo'    => $row->logo
-                ? ('https://partners.arabianpay.net' . $row->logo)
-                : 'https://api.arabianpay.net/public/placeholder.jpg',
-            'cover'   => asset('assets/img/placeholder.jpg'),
-            'rating'  => 0,
-        ];
-    })->values();
-
-    return $this->returnData([
-        'data'        => $data,
-        'page'        => $rows->currentPage(),
-        'per_page'    => $rows->perPage(),
-        'total'       => $rows->total(),
-        'total_pages' => $rows->lastPage(),
-    ], 'Suppliers retrieved successfully.');
-}
-
 
     public function getSupplierDetails($id)
     {
