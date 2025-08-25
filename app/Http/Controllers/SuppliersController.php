@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\EncryptionService;
 use App\Models\AdsSlider;
 use App\Models\Brand;
 use App\Models\Category;
@@ -19,7 +20,9 @@ class SuppliersController extends Controller
     use ApiResponseTrait;
    public function getSuppliers(Request $request)
     {
-        $name = $request->input('name');
+        $encryptionService = new EncryptionService();
+
+        $name = $encryptionService->db_encrypt($request->input('name'));
         $shops = ShopSetting::orderBy('id', 'desc');
         if ($name) {
             $shops = $shops->where('name', 'like', '%' . $name . '%');
