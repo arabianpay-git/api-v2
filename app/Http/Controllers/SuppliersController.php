@@ -17,9 +17,9 @@ use Illuminate\Http\Request;
 class SuppliersController extends Controller
 {
     use ApiResponseTrait;
-   public function getSuppliers()
+   public function getSuppliers(Request $request)
     {
-        $name = $_REQUEST['name'] ?? '';
+        $name = $request->input('name');
         $shops = ShopSetting::orderBy('id', 'desc');
         if ($name) {
             $shops = $shops->where('name', 'like', '%' . $name . '%');
