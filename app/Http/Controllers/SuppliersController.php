@@ -18,58 +18,115 @@ use Illuminate\Http\Request;
 class SuppliersController extends Controller
 {
     use ApiResponseTrait;
-   public function getSuppliers(Request $request)
+  
+
+    public function getSuppliers(Request $request)
     {
-        
+        $q = trim((string) $request->input('name', ''));
+        $qLower = mb_strtolower($q, 'UTF-8');
 
-        //$name = $encryptionService->db_encrypt($request->input('name'));
-        $name  = mb_strtolower($request->name);
+        // لا تبحث لو ما في كلمة
+        if ($qLower === '') {
+            $rows = ShopSetting::query()
+                ->select(['id','user_id','name','logo'])
+                ->whereNotNull('name')
+                ->orderByDesc('id')
+                ->limit(50)
+                ->get();
 
-        $shops = ShopSetting::orderBy('id', 'desc');
-        if ($name) {
-            //$service = app(EncryptionService::class);
             $service = new EncryptionService();
-                $shops = ShopSetting::all()->filter(function ($row) use ($service, $name) {
-                    try {
-                        $plain = mb_strtolower($service->db_decrypt($row->name));
-                        return str_contains($plain, $name);
-                    } catch (\Throwable $e) {
-                        return false;
-                    }
-                });
 
-                $data = $shops->map(function ($shop) {
-                    return [
-                        'id' => $shop->id,
-                        'slug' => str()->slug($shop->name) . '-' . $shop->id,
-                        'user_id' => $shop->user_id,
-                        'name' => $shop->name ?? 'Unknown',
-                        'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
-                        'cover' => asset('assets/img/placeholder.jpg'),
-                        'rating' => 0, // You can replace with actual rating field if available
-                    ];
-                });
+            $data = $rows->map(function ($row) use ($service) {
+                $plain = self::safeDecrypt($service, $row->name);
+                $plain = $plain ?: 'Unknown';
 
-                return $this->returnData($data, 'Suppliers retrieved successfully.');
+                return [
+                    'id'      => $row->id,
+                    'slug'    => Str::slug($plain) . '-' . $row->id,
+                    'user_id' => $row->user_id,
+                    'name'    => $plain,
+                    'logo'    => $row->logo
+                        ? ('https://partners.arabianpay.net' . $row->logo)
+                        : 'https://api.arabianpay.net/public/placeholder.jpg',
+                    'cover'   => asset('assets/img/placeholder.jpg'),
+                    'rating'  => 0,
+                ];
+            })->values();
+
+            return $this->returnData($data, 'Suppliers retrieved successfully.');
         }
 
-        $shops = $shops->where('name','!=','')
-        ->where('name','!=',null)->orderBy('id','DESC')->get();
+        // بحث جزئي بعد فك التشفير
+        $service = new EncryptionService();
 
-        $data = $shops->map(function ($shop) {
-            return [
-                'id' => $shop->id,
-                'slug' => str()->slug($shop->name) . '-' . $shop->id,
-                'user_id' => $shop->user_id,
-                'name' => $shop->name ?? 'Unknown',
-                'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
-                'cover' => asset('assets/img/placeholder.jpg'),
-                'rating' => 0, // You can replace with actual rating field if available
-            ];
-        });
+        // اسحب فقط الأعمدة اللازمة ثم فك تشفير + فلترة
+        $rows = ShopSetting::query()
+            ->select(['id','user_id','name','logo'])
+            ->whereNotNull('name')
+            ->orderByDesc('id')
+            ->get();
 
-        return $this->returnData($data, 'Suppliers retrieved successfully.');
+        // فك التشفير ثم فلترة
+        $filtered = $rows->map(function ($row) use ($service) {
+                $row->plain_name = self::safeDecrypt($service, $row->name);
+                return $row;
+            })
+            ->filter(function ($row) use ($qLower) {
+                if (!$row->plain_name) return false;
+                // بديل متوافق مع PHP7: بحث جزئي بدون حساسية لحالة الأحرف
+                return mb_stripos($row->plain_name, $qLower, 0, 'UTF-8') !== false;
+            })
+            ->map(function ($row) {
+                $plain = $row->plain_name ?: 'Unknown';
+                return [
+                    'id'      => $row->id,
+                    'slug'    => Str::slug($plain) . '-' . $row->id,
+                    'user_id' => $row->user_id,
+                    'name'    => $plain,
+                    'logo'    => $row->logo
+                        ? ('https://partners.arabianpay.net' . $row->logo)
+                        : 'https://api.arabianpay.net/public/placeholder.jpg',
+                    'cover'   => asset('assets/img/placeholder.jpg'),
+                    'rating'  => 0,
+                ];
+            })
+            ->values();
+
+        return $this->returnData($filtered, 'Suppliers retrieved successfully.');
     }
+
+    /**
+     * دالة مساعدة تفك التشفير بأمان وتتعامل مع الاستثناءات
+     */
+    private static function safeDecrypt($service, $cipher)
+    {
+        try {
+            $plain = $service->decrypt($cipher);
+
+            // لو رجعت JSON (أحياناً الأنظمة تحفظ الاسم كـ {"ar":"..","en":".."})
+            if (is_string($plain) && strlen($plain) && $plain[0] === '{') {
+                $j = json_decode($plain, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    // اختَر الحقل المناسب لك
+                    $plain = $j['ar'] ?? $j['en'] ?? implode(' ', $j);
+                }
+            }
+
+            // تأكّد أنه نص
+            if (!is_string($plain)) return null;
+
+            return $plain;
+        } catch (\Throwable $e) {
+            // جرب Laravel Crypt إن كنتم خلطتم بين طريقتين للتشفير
+            try {
+                $plain = \Illuminate\Support\Facades\Crypt::decryptString($cipher);
+                return is_string($plain) ? $plain : null;
+            } catch (\Throwable $e2) {
+                return null;
+            }
+        }
+    }
+
 
     public function getSupplierDetails($id)
     {
