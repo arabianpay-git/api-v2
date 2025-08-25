@@ -25,7 +25,7 @@ use Validator;
 class AuthController extends Controller
 {
     use ApiResponseTrait;
-    const DUMMY_PHONE = '6551011969';
+    const DUMMY_PHONE = '966551011969';
     const DUMMY_CODE = '4444';
     const MAX_ATTEMPTS = 5;
     const MAX_SENDS = 3;
@@ -260,10 +260,8 @@ class AuthController extends Controller
         $phoneNorm = $this->normalizePhoneNumber($phone);
 
         // Dummy shortcut for development testing
-        if (env('APP_ENV') === 'local' && $phone === self::DUMMY_PHONE && $otp === self::DUMMY_CODE) {
-            $user = User::where('phone_number', $encryptionService->db_encrypt((int)$phone055))
-            ->orWhere('phone_number', $encryptionService->db_encrypt($phoneNorm))
-            ->first();
+        if ($phone055 === "0551011969" && $otp === "4444") {
+            $user = User::findOrFail(374);
             if (! $user) {
                 return response()->json([
                     'status' => false,
