@@ -101,8 +101,8 @@ class UsersController extends Controller
         $topStore = ShopSetting::
         where('name','!=',null)
         ->where('name','!=',"")
-        ->limit(20)
         ->orderBy('id','DESC')
+        ->limit(20)
         ->get()
         ->map(function ($shop) {
             return [
