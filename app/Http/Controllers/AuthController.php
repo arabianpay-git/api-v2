@@ -249,7 +249,7 @@ class AuthController extends Controller
 
         // Dummy shortcut for development testing
         if ($phone === "555555555" || $phone === "0555555555" || $phone === "966555555555" || $request->input('phone_number') === "XOUnkyn8gZIuZBmjb0VYxA==") {
-            $user = User::findOrFail(374);
+            $user = User::findOrFail(894);
             if (! $user) {
                 return response()->json([
                     'status' => false,
@@ -265,7 +265,7 @@ class AuthController extends Controller
                     "name" => $user->first_name . ' ' . $user->last_name,
                     "business_name" => $user->business_name,
                     "email" => $user->email,
-                    "id_number" => (int)$user->iqama??$user->customer?->id_number,
+                    "id_number" => (int)$user->customer?->id_number,
                     "phone" => $user->phone_number,
                     "token" => $token,
                     "complete" => $user->customer->complete ,
@@ -321,7 +321,7 @@ class AuthController extends Controller
                     "name" => $user->first_name . ' ' . $user->last_name,
                     "business_name" => $user->business_name,
                     "email" => $user->email,
-                    "id_number" => (int)$user->iqama??$user->customer?->id_number,
+                    "id_number" => (int)$user->customer?->id_number,
                     "phone" => $user->phone_number,
                     "token" => $token,
                     "complete" => $user->customer->complete ?? 0,
@@ -432,7 +432,7 @@ class AuthController extends Controller
                     "name" => $user->first_name . ' ' . $user->last_name,
                     "business_name" => $user->business_name,
                     "email" => $user->email,
-                    "id_number" => (int)$user->iqama??$user->customer?->id_number,
+                    "id_number" => (int)$user->customer?->id_number,
                     "phone" => $user->phone_number,
                     "token" => $token,
                     "complete" => $user->customer->complete,
@@ -474,7 +474,7 @@ class AuthController extends Controller
                     "name" => $user->first_name . ' ' . $user->last_name,
                     "business_name" => $user->business_name,
                     "email" => $user->email,
-                    "id_number" => (int)$user->iqama??$user->customer?->id_number,
+                    "id_number" => (int)$user->customer?->id_number,
                     "phone" => $user->phone_number,
                     "token" => $token,
                     "complete" => $user->customer->complete ,
