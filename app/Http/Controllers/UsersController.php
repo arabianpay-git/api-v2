@@ -758,112 +758,39 @@ class UsersController extends Controller
             'date_type_of_birth'       => $dobType,
         ]);
 
-        // نحاول تحويل تاريخ الميلاد إلى Y-m-d
-        $dob = null;
-        if ($dobRaw) {
-            try {
-                $dob = Carbon::parse($dobRaw)->format('Y-m-d');
-            } catch (\Throwable $e) {
-                // جرّب تنسيقات شائعة
-                foreach (['d/m/Y','d-m-Y','m/d/Y','m-d-Y'] as $fmt) {
-                    try { $dob = Carbon::createFromFormat($fmt, $dobRaw)->format('Y-m-d'); break; } catch (\Throwable $e2) {}
-                }
-            }
-        }
-
+        
         // اجلب العميل
-        $userId =  Auth::id();
+        $user = Auth::user();
+        $userId =  $user->id;
         $customer = Customer::where('user_id',$userId)->first();
-
-        // نبني بيانات التحديث (لا نرسل null حتى لا نمسح بيانات سابقة)
-        $customerData = array_filter([
-            'cr_number'                => $crNumber,
-            'tax_number'               => $taxNumber,
-            'business_category_id'     => $categoryId,
-            'purchasing_natures'       => $purchNatures,
-            'purchasing_volume'        => $purchVolume,
-            'other_purchasing_natures' => $otherPurch,
-            'date_of_birth'            => $dob,
-        ], fn($v) => !is_null($v) && $v !== '');
-
-        // تحقق فريد (يتجاهل السجل الحالي)
-        $v = Validator::make($customerData, [
-            'cr_number'  => [ 'nullable', Rule::unique('customers','cr_number')->ignore($customer->id) ],
-            'tax_number' => [ 'nullable', Rule::unique('customers','tax_number')->ignore($customer->id) ],
-        ]);
-        if ($v->fails()) {
-            return response()->json([
-                'status' => false,
-                'errNum' => 'E_VALIDATION',
-                'msg'    => 'Validation failed.',
-                'errors' => $v->errors(),
-            ], 422);
+        if (!$customer) {
+            try{
+                $customer->business_type_id =  $purchNatures;
+                $customer->business_category_id = $categoryId;
+                $customer->cr_number = $crNumber;
+                $customer->tax_number = $taxNumber;
+                $customer->purchasing_natures = $purchNatures;
+                $customer->purchasing_volume = $purchVolume;
+                $customer->other_purchasing_natures = $otherPurch;
+                $customer->date_of_birth =$dobRaw;
+                $customer->save();
+            }catch(\Exception $e){
+                return response()->json([
+                    'status' => false,
+                    'errNum' => 'E404',
+                    'msg'    => 'Customer not found.',
+                    'error'  => app()->hasDebugModeEnabled() ? $e->getMessage() : null,
+                ], 404);
+            }
         }
 
-        // حضّر دمج cr_data لحقول إضافية (مثل date_type_of_birth)
-        $crDataExisting = $customer->cr_data;
-        if (is_string($crDataExisting)) {
-            $crDataExisting = json_decode($crDataExisting, true);
+        if($user){
+            $user->email = $email ?? $user->email;
+            $user->bussiness_name = $tradeName ?? $user->first_name;
+            $user->save();
         }
-        if (!is_array($crDataExisting)) $crDataExisting = [];
-
-        $crDataMerged = $crDataExisting;
-        if ($dobType !== null && $dobType !== '') {
-            $crDataMerged['date_type_of_birth'] = $dobType;
-        }
-
-        // تنفيذ ذري
-        DB::beginTransaction();
-        try {
-            // حدث العميل
-            if (!empty($customerData)) {
-                $customer->fill($customerData);
-            }
-            // خزّن cr_data المدموج إذا تغيّر
-            if ($crDataMerged !== $crDataExisting) {
-                $customer->cr_data = $crDataMerged;
-            }
-            $customer->save();
-
-            // تحديث المستخدم المرتبط (email + trade_name إن وجد عمود)
-            if ($customer->user) {
-                $user = $customer->user;
-                $userData = [];
-
-                if ($email) {
-                    // تحقق فريد للبريد
-                    $vUser = Validator::make(['email' => $email], [
-                        'email' => ['email', Rule::unique('users','email')->ignore($user->id)],
-                    ]);
-                    if ($vUser->fails()) {
-                        // لو البريد مكرر، لا توقف العملية كلها — فقط تجاوز البريد
-                        $email = null;
-                    } else {
-                        $userData['email'] = $email;
-                    }
-                }
-
-                if ($tradeName) {
-                    if (Schema::hasColumn('users','name')) {
-                        $userData['name'] = $tradeName;
-                    } elseif (Schema::hasColumn('users','first_name')) {
-                        // إن ما عندك name، خزّنه في first_name كتسوية
-                        $userData['first_name'] = $tradeName;
-                    }
-                }
-
-                if (!empty($userData)) {
-                    $user->fill($userData)->save();
-                }
-            }
-
-            DB::commit();
-
             // رجّع نسخة محدّثة (بدون تسريب القيم المشفّرة)
-            return response()->json([
-                'status' => true,
-                'msg'    => 'Customer updated successfully.',
-                'data'   => [
+            $data = [
                     'customer_id'               => $customer->id,
                     'cr_number'                 => $customer->cr_number,
                     'tax_number'                => $customer->tax_number,
@@ -878,19 +805,9 @@ class UsersController extends Controller
                         'email' => $customer->user->email,
                         'name'  => Schema::hasColumn('users','name') ? ($customer->user->name ?? null) : null,
                     ] : null,
-                ],
-            ]);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'status' => false,
-                'errNum' => 'E_UPDATE_FAILED',
-                'msg'    => 'Failed to update customer.',
-                'error'  => app()->hasDebugModeEnabled() ? $e->getMessage() : null,
-            ], 500);
-        }
+            ];
+            return $this->returnData($data, 'KYC data saved successfully.');
+        
     }
 
 }
