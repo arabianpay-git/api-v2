@@ -296,8 +296,8 @@ class HomeController extends Controller
             return [
                 'id' => $brand->id,
                 'name' => $brand->translations[0]->name ?? '',
-                'logo' => 'https://core.arabianpay.net/partners-media/DLsRJWdZOCUZzGlIiPnzhQy9Ag1OLV7aWVr2pnBn.jpg',
                 //'logo' => 'https://core.arabianpay.net'.$brand->logo,
+                'logo' => 'https://core.arabianpay.net/partners-media/DLsRJWdZOCUZzGlIiPnzhQy9Ag1OLV7aWVr2pnBn.jpg'
             ];
         });
     }
@@ -313,16 +313,15 @@ class HomeController extends Controller
         ->map(function ($category) {
           if(!empty($category->image)){
             if (Str::startsWith($category->image, '/storage')) {
-              //$img = 'https://core.arabianpay.net'.$category->image;
-              $img = 'https://api.arabianpay.net/public/placeholder.jpg';
+              $img = 'https://core.arabianpay.net'.$category->image;
             }else{
-              //$img = 'https://core.arabianpay.net'.$category->image;
-              $img = 'https://api.arabianpay.net/public/placeholder.jpg';
+              $img = 'https://core.arabianpay.net'.$category->image;
             }
           }else{
             $img = 'https://api.arabianpay.net/public/placeholder.jpg';
           }
 
+          $img = 'https://api.arabianpay.net/public/placeholder.jpg';
           
             return [
                 'id' => $category->id,
@@ -331,11 +330,11 @@ class HomeController extends Controller
                 'parent_id' => $category->parent_id,
                 'children' => $category->children->map(function ($child) {
                     if(!empty($child->image)){
-                      //$ch_img = 'https://core.arabianpay.net'.$child->image;
-                      $img = 'https://api.arabianpay.net/public/placeholder.jpg';
+                      $ch_img = 'https://core.arabianpay.net'.$child->image;
                     }else{
                       $ch_img = 'https://api.arabianpay.net/public/placeholder.jpg';
                     }
+                    $ch_img = 'https://api.arabianpay.net/public/placeholder.jpg';
                     return [
                         'id' => $child->id,
                         'name' => $child->name,
