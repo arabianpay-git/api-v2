@@ -759,7 +759,8 @@ class UsersController extends Controller
         }
 
         // اجلب العميل
-        $customer = Customer::with('user')->findOrFail($id);
+        $userId =  Auth::id();
+        $customer = Customer::where('user_id',$userId)->first();
 
         // نبني بيانات التحديث (لا نرسل null حتى لا نمسح بيانات سابقة)
         $customerData = array_filter([
