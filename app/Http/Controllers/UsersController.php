@@ -777,17 +777,25 @@ class UsersController extends Controller
             }catch(\Exception $e){
                 return response()->json([
                     'status' => false,
-                    'errNum' => 'E404',
-                    'msg'    => 'Customer not found.',
-                    'error'  => app()->hasDebugModeEnabled() ? $e->getMessage() : null,
-                ], 404);
+                    'errNum' => 'E422',
+                    'msg'    =>  app()->hasDebugModeEnabled() ? $e->getMessage() : 'Failed to save KYC data.',
+                ]);
             }
         }
 
         if($user){
-            $user->email = $email ?? $user->email;
-            $user->business_name = $tradeName ?? $user->first_name;
-            $user->save();
+            try{
+                $user->email = $email ?? $user->email;
+                $user->business_name = $tradeName ?? $user->first_name;
+                $user->save();
+            }catch(\Exception $e){
+                return response()->json([
+                    'status' => false,
+                    'errNum' => 'E422',
+                    'msg'    => app()->hasDebugModeEnabled() ? $e->getMessage() : 'Failed to update user name.',
+                ]);
+            }
+            
         }
             // رجّع نسخة محدّثة (بدون تسريب القيم المشفّرة)
             $data = [
