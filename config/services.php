@@ -41,4 +41,11 @@ return [
         'base_url'   => env('CLICKPAY_BASE_URL', 'https://secure.clickpay.com.sa'),
     ],
 
+    'media_hosts' => [
+        'api'      => env('MEDIA_BASE_API', env('APP_URL')),
+        'core'     => env('MEDIA_BASE_CORE', env('APP_URL')),
+        'partners' => env('MEDIA_BASE_PARTNERS', env('APP_URL')),
+    ],
+    'media_fallback' => env('MEDIA_FALLBACK', '/uploads/sliders/default_cover.png'),
+
 ];

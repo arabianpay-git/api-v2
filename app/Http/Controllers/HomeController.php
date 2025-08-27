@@ -296,7 +296,7 @@ class HomeController extends Controller
             return [
                 'id' => $brand->id,
                 'name' => $brand->translations[0]->name ?? '',
-                'logo' => 'https://core.arabianpay.net'.$brand->logo,
+                'logo' => media_url($brand->logo, null, 'core')
             ];
         });
     }
@@ -312,12 +312,12 @@ class HomeController extends Controller
         ->map(function ($category) {
           if(!empty($category->image)){
             if (Str::startsWith($category->image, '/storage')) {
-              $img = 'https://core.arabianpay.net'.$category->image;
+              $img = media_url($category->image, null, 'core');
             }else{
-              $img = 'https://core.arabianpay.net'.$category->image;
+              $img = media_url($category->image, null, 'core');
             }
           }else{
-            $img = 'https://api.arabianpay.net/public/placeholder.jpg';
+            $img = $img = media_url($category->image, null, 'core');
           }
 
           
@@ -328,9 +328,9 @@ class HomeController extends Controller
                 'parent_id' => $category->parent_id,
                 'children' => $category->children->map(function ($child) {
                     if(!empty($child->image)){
-                      $ch_img = 'https://core.arabianpay.net'.$child->image;
+                      $ch_img = media_url($child->image, null, 'core');
                     }else{
-                      $ch_img = 'https://api.arabianpay.net/public/placeholder.jpg';
+                      $ch_img = media_url($child->image, null, 'core');
                     }
                     return [
                         'id' => $child->id,
@@ -380,7 +380,7 @@ class HomeController extends Controller
                     'id' => $product->id,
                     'name' => $product->name??'-',
                     'brand' => $product->brand->name ?? 'عام',
-                    'thumbnail_image' => !empty($product->thumbnail)?'https://partners.arabianpay.net'.$product->thumbnail:'https://api.arabianpay.net/public/placeholder.jpg',
+                    'thumbnail_image' => media_url($product->thumbnail, null, 'core'),
                     'has_discount' => $discount > 0,
                     'unit' => $product->unit,
                     'discount' => $discount,
@@ -434,7 +434,7 @@ class HomeController extends Controller
                     'id' => $product->id,
                     'name' => $product->name??'-',
                     'brand' => $product->brand->name ?? 'عام',
-                    'thumbnail_image' => !empty($product->thumbnail)?'https://partners.arabianpay.net'.$product->thumbnail:'https://api.arabianpay.net/public/placeholder.jpg',
+                    'thumbnail_image' => media_url($product->thumbnail, null, 'core'),
                     'has_discount' => $discount > 0,
                     'discount' => $discount,
                     'unit' => $product->unit,
@@ -470,8 +470,8 @@ class HomeController extends Controller
                 'slug' => Str::slug($shop->name) . '-' . $shop->id, // Dynamic slug
                 'user_id' => $shop->user_id,
                 'name' => $shop->name,
-                'logo' => $shop->logo?'https://partners.arabianpay.net'.$shop->logo:'https://api.arabianpay.net/public/placeholder.jpg',
-                'cover' => 'https://api.arabianpay.net/public/placeholder.jpg', // Placeholder cover image
+                'logo' => media_url($shop->logo, null, 'core'),
+                'cover' => media_url($shop->logo), // Placeholder cover image
                 'rating' => 0, // Since your table has no rating
             ];
         });
@@ -484,13 +484,12 @@ class HomeController extends Controller
         return AdsSlider::select('image', 'id')->get()
             ->map(function ($slider) {
                 return [
-                    'image' => $slider->image?'https://core.arabianpay.net'.$slider->image:'https://api.arabianpay.net/uploads/sliders/default_cover.png', // get URL by ID
-                    'image_id' => (string) $slider->id,
+                    'image' => media_url($slider->image, null, 'core'), 
                     'target' => [
                       'type' => 'brand',
                       'id' => 1,
                       'name' => 'Generic',
-                      'image' => $slider->image?'https://core.arabianpay.net'.$slider->image:'https://api.arabianpay.net/uploads/sliders/default_cover.png',
+                      'image' => media_url($slider->image, null, 'core'),
                       'rating' => 0
                   ], // No target data in table
                 ];
@@ -504,13 +503,13 @@ class HomeController extends Controller
             ->get()
             ->map(function ($slider) {
                 return [
-                    'image' => "https://arabianpay.co//uploads/all/5b5acbc6-c272-41a9-92ea-13bef2fa1a5e.png",
+                    'image' => media_url($slider->image, null, 'core'),
                     'image_id' => (string) $slider->id,
                     'target' => [
                         'type' => 'brand',
                         'id' => 1,
                         'name' => 'Generic',
-                        'image' => $slider->image?'https://core.arabianpay.net'.$slider->image:'https://api.arabianpay.net/uploads/sliders/default_cover.png',
+                        'image' => media_url($slider->image, null, 'core'),
                         'rating' => 0
                     ], // No target data in table
                 ];
