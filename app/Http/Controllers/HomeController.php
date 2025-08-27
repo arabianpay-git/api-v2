@@ -484,13 +484,13 @@ class HomeController extends Controller
         return AdsSlider::select('image', 'id')->get()
             ->map(function ($slider) {
                 return [
-                    'image' => $slider->image?'https://core.arabianpay.com'.$slider->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png', // get URL by ID
+                    'image' => $slider->image?'https://core.arabianpay.net'.$slider->image:'https://api.arabianpay.net/uploads/sliders/default_cover.png', // get URL by ID
                     'image_id' => (string) $slider->id,
                     'target' => [
                       'type' => 'brand',
                       'id' => 1,
                       'name' => 'Generic',
-                      'image' => $slider->image?'https://core.arabianpay.com'.$slider->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
+                      'image' => $slider->image?'https://core.arabianpay.net'.$slider->image:'https://api.arabianpay.net/uploads/sliders/default_cover.png',
                       'rating' => 0
                   ], // No target data in table
                 ];
@@ -510,7 +510,7 @@ class HomeController extends Controller
                         'type' => 'brand',
                         'id' => 1,
                         'name' => 'Generic',
-                        'image' => $slider->image?'https://core.arabianpay.com'.$slider->image:'https://api.arabianpay.com/uploads/sliders/default_cover.png',
+                        'image' => $slider->image?'https://core.arabianpay.net'.$slider->image:'https://api.arabianpay.net/uploads/sliders/default_cover.png',
                         'rating' => 0
                     ], // No target data in table
                 ];
