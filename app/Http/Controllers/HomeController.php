@@ -296,7 +296,7 @@ class HomeController extends Controller
             return [
                 'id' => $brand->id,
                 'name' => $brand->translations[0]->name ?? '',
-                'logo' => media_url($brand->logo, null, 'core')
+                'logo' => media_url_guess($brand->logo)
             ];
         });
     }
@@ -312,12 +312,12 @@ class HomeController extends Controller
         ->map(function ($category) {
           if(!empty($category->image)){
             if (Str::startsWith($category->image, '/storage')) {
-              $img = media_url($category->image, null, 'core');
+              $img = media_url_guess($category->image);
             }else{
-              $img = media_url($category->image, null, 'core');
+              $img = media_url_guess($category->image);
             }
           }else{
-            $img = $img = media_url($category->image, null, 'core');
+            $img = $img = media_url_guess($category->image);
           }
 
           
@@ -328,9 +328,9 @@ class HomeController extends Controller
                 'parent_id' => $category->parent_id,
                 'children' => $category->children->map(function ($child) {
                     if(!empty($child->image)){
-                      $ch_img = media_url($child->image, null, 'core');
+                      $ch_img = media_url_guess($child->image);
                     }else{
-                      $ch_img = media_url($child->image, null, 'core');
+                      $ch_img = media_url_guess($child->image);
                     }
                     return [
                         'id' => $child->id,
@@ -380,7 +380,7 @@ class HomeController extends Controller
                     'id' => $product->id,
                     'name' => $product->name??'-',
                     'brand' => $product->brand->name ?? 'عام',
-                    'thumbnail_image' => media_url($product->thumbnail, null, 'core'),
+                    'thumbnail_image' => media_url_guess($product->thumbnail),
                     'has_discount' => $discount > 0,
                     'unit' => $product->unit,
                     'discount' => $discount,
@@ -434,7 +434,7 @@ class HomeController extends Controller
                     'id' => $product->id,
                     'name' => $product->name??'-',
                     'brand' => $product->brand->name ?? 'عام',
-                    'thumbnail_image' => media_url($product->thumbnail, null, 'core'),
+                    'thumbnail_image' => media_url_guess($product->thumbnail),
                     'has_discount' => $discount > 0,
                     'discount' => $discount,
                     'unit' => $product->unit,
@@ -470,8 +470,8 @@ class HomeController extends Controller
                 'slug' => Str::slug($shop->name) . '-' . $shop->id, // Dynamic slug
                 'user_id' => $shop->user_id,
                 'name' => $shop->name,
-                'logo' => media_url($shop->logo, null, 'core'),
-                'cover' => media_url($shop->logo), // Placeholder cover image
+                'logo' => media_url_guess($shop->logo),
+                'cover' => media_url_guess($shop->logo), // Placeholder cover image
                 'rating' => 0, // Since your table has no rating
             ];
         });
@@ -484,12 +484,12 @@ class HomeController extends Controller
         return AdsSlider::select('image', 'id')->get()
             ->map(function ($slider) {
                 return [
-                    'image' => media_url($slider->image, null, 'core'), 
+                    'image' => media_url_guess($slider->image), 
                     'target' => [
                       'type' => 'brand',
                       'id' => 1,
                       'name' => 'Generic',
-                      'image' => media_url($slider->image, null, 'core'),
+                      'image' => media_url_guess($slider->image),
                       'rating' => 0
                   ], // No target data in table
                 ];
@@ -503,13 +503,13 @@ class HomeController extends Controller
             ->get()
             ->map(function ($slider) {
                 return [
-                    'image' => media_url($slider->image, null, 'core'),
+                    'image' => media_url_guess($slider->image),
                     'image_id' => (string) $slider->id,
                     'target' => [
                         'type' => 'brand',
                         'id' => 1,
                         'name' => 'Generic',
-                        'image' => media_url($slider->image, null, 'core'),
+                        'image' => media_url_guess($slider->image),
                         'rating' => 0
                     ], // No target data in table
                 ];
