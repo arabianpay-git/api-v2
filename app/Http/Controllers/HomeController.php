@@ -531,7 +531,7 @@ class HomeController extends Controller
         if ($request->operation === 'encrypt') {
             $result = $encryptionService->encrypt($request->text);
         } else {
-            $result = $encryptionService->decrypt($request->text);
+            $result = $encryptionService->db_decrypt($request->text);
         }
 
         return($result); // Debugging output, remove in production

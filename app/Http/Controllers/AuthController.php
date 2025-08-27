@@ -126,7 +126,7 @@ class AuthController extends Controller
                 }
 
 
-                $user = $this->createUserFromNafath($UserData, $validation->phone_number);
+                $user = $this->createUserFromNafath($UserData, $validation->phone_number,$UserData['id']);
                 if ($user) {
                     Log::info('Creating or updating customer from Nafath data.');
                                 try {
@@ -624,7 +624,7 @@ class AuthController extends Controller
         }
     }
 
-    public function createUserFromNafath(array $nafathData, string $phone)
+    public function createUserFromNafath(array $nafathData, string $phone,string $nationalId = null)
     {
         $user = User::create([
             'first_name'   => $nafathData['first_name#en'] ?? '',
@@ -632,7 +632,7 @@ class AuthController extends Controller
             'user_type'    => 'user',
             'email'        => $phone . '@arabianpay.net', // Temporary email
             'business_name'=> null,
-            'iqama'        => $nafathData['id'] ?? null,
+            'iqama'        => $nationalId ?? $nafathData['id'] ?? null,
             'phone_number' => $phone,
             'department_id'=> null,
             'is_manager'   => false,
