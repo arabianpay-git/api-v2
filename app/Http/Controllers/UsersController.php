@@ -745,6 +745,19 @@ class UsersController extends Controller
         $dobRaw          = $dec('date_of_birth');
         $dobType         = $dec('date_type_of_birth');
 
+        Log::info('Decrypted KYC Data: ', [
+            'cr_number'                => $crNumber,
+            'tax_number'               => $taxNumber,
+            'email'                    => $email,
+            'trade_name'               => $tradeName,
+            'category_id'              => $categoryId,
+            'purchasing_natures'       => $purchNatures,
+            'purchasing_volume'        => $purchVolume,
+            'other_purchasing_natures' => $otherPurch,
+            'date_of_birth'            => $dobRaw,
+            'date_type_of_birth'       => $dobType,
+        ]);
+
         // نحاول تحويل تاريخ الميلاد إلى Y-m-d
         $dob = null;
         if ($dobRaw) {
