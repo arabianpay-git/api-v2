@@ -775,6 +775,7 @@ class UsersController extends Controller
                 $customer->date_of_birth =$dobRaw;
                 $customer->save();
             }catch(\Exception $e){
+                Log::error('Failed to save KYC data: '.$e->getMessage());
                 return response()->json([
                     'status' => false,
                     'errNum' => 'E422',
@@ -789,6 +790,7 @@ class UsersController extends Controller
                 $user->business_name = $tradeName ?? $user->first_name;
                 $user->save();
             }catch(\Exception $e){
+                Log::error('Failed to update user: '.$e->getMessage());
                 return response()->json([
                     'status' => false,
                     'errNum' => 'E422',
