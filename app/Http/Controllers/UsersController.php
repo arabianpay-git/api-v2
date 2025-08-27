@@ -23,7 +23,10 @@ use Carbon\Carbon;
 use DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Log;
+use Schema;
+use Validator;
 
 class UsersController extends Controller
 {
@@ -717,47 +720,163 @@ class UsersController extends Controller
     public function setKyc(Request $request)
     {
         Log::info('KYC Data Received: ', $request->all());
-        $request->validate([
-            'data' => 'required|array',
-        ]);
-        $userId = $request->user()->id;
-        $encryptionService = new EncryptionService(); // تأكّد إن عندك خدمة فك تشفير
+            // نقبل إما JSON مسطح أو داخل data{}
+        $payload = $request->has('data') ? (array) $request->input('data') : (array) $request->all();
 
-        $data = $request->input('data');
+        $enc = new EncryptionService();
 
-        // نفك التشفير لكل قيمة موجودة
-        $updateData = [
-            'cr_number'               => isset($data['cr_number']) ? $encryptionService->decrypt($data['cr_number']) : null,
-            'tax_number'              => isset($data['tax_number']) ? $encryptionService->decrypt($data['tax_number']) : null,
-            'business_category_id'    => isset($data['category_id']) ? $encryptionService->decrypt($data['category_id']) : null,
-            'purchasing_natures'      => isset($data['purchasing_natures']) ? $encryptionService->decrypt($data['purchasing_natures']) : null,
-            'purchasing_volume'       => isset($data['purchasing_volume']) ? $encryptionService->decrypt($data['purchasing_volume']) : null,
-            'other_purchasing_natures'=> isset($data['other_purchasing_natures']) ? $encryptionService->decrypt($data['other_purchasing_natures']) : null,
-            'date_of_birth'           => isset($data['date_of_birth']) ? $encryptionService->decrypt($data['date_of_birth']) : null,
-            'complete'          => 1,
-        ];
+        // دالة مساعدة لفك التشفير بأمان
+        $dec = function (string $key) use ($payload, $enc) {
+            if (!array_key_exists($key, $payload) || $payload[$key] === null || $payload[$key] === '') {
+                return null;
+            }
+            try { return $enc->decrypt($payload[$key]); } catch (\Throwable $e) { return null; }
+        };
 
-        // بعض الحقول ما موجودة في جدول customers، زي trade_name و email
-        // تقدر تحفظهم في جدول users المرتبط بالـ customer
-        $userData = [
-            'email'      => isset($data['email']) ? $encryptionService->decrypt($data['email']) : null,
-            'name'       => isset($data['trade_name']) ? $encryptionService->decrypt($data['trade_name']) : null,
-        ];
+        // نفك التشفير
+        $crNumber        = $dec('cr_number');
+        $taxNumber       = $dec('tax_number');
+        $email           = $dec('email');
+        $tradeName       = $dec('trade_name');
+        $categoryId      = $dec('category_id');
+        $purchNatures    = $dec('purchasing_natures');
+        $purchVolume     = $dec('purchasing_volume');
+        $otherPurch      = $dec('other_purchasing_natures');
+        $dobRaw          = $dec('date_of_birth');
+        $dobType         = $dec('date_type_of_birth');
 
-        // نحدّث بيانات العميل
-        $customer = Customer::where('user_id',$userId)->first();
-        $customer->update($updateData);
-
-        // نحدّث بيانات المستخدم المرتبط
-        if ($customer->user) {
-            $customer->user->update(array_filter($userData));
+        // نحاول تحويل تاريخ الميلاد إلى Y-m-d
+        $dob = null;
+        if ($dobRaw) {
+            try {
+                $dob = Carbon::parse($dobRaw)->format('Y-m-d');
+            } catch (\Throwable $e) {
+                // جرّب تنسيقات شائعة
+                foreach (['d/m/Y','d-m-Y','m/d/Y','m-d-Y'] as $fmt) {
+                    try { $dob = Carbon::createFromFormat($fmt, $dobRaw)->format('Y-m-d'); break; } catch (\Throwable $e2) {}
+                }
+            }
         }
 
-        return response()->json([
-            'status' => true,
-            'msg'    => 'Customer updated successfully',
-            'data'   => $customer->fresh('user'),
+        // اجلب العميل
+        $customer = Customer::with('user')->findOrFail($id);
+
+        // نبني بيانات التحديث (لا نرسل null حتى لا نمسح بيانات سابقة)
+        $customerData = array_filter([
+            'cr_number'                => $crNumber,
+            'tax_number'               => $taxNumber,
+            'business_category_id'     => $categoryId,
+            'purchasing_natures'       => $purchNatures,
+            'purchasing_volume'        => $purchVolume,
+            'other_purchasing_natures' => $otherPurch,
+            'date_of_birth'            => $dob,
+        ], fn($v) => !is_null($v) && $v !== '');
+
+        // تحقق فريد (يتجاهل السجل الحالي)
+        $v = Validator::make($customerData, [
+            'cr_number'  => [ 'nullable', Rule::unique('customers','cr_number')->ignore($customer->id) ],
+            'tax_number' => [ 'nullable', Rule::unique('customers','tax_number')->ignore($customer->id) ],
         ]);
+        if ($v->fails()) {
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E_VALIDATION',
+                'msg'    => 'Validation failed.',
+                'errors' => $v->errors(),
+            ], 422);
+        }
+
+        // حضّر دمج cr_data لحقول إضافية (مثل date_type_of_birth)
+        $crDataExisting = $customer->cr_data;
+        if (is_string($crDataExisting)) {
+            $crDataExisting = json_decode($crDataExisting, true);
+        }
+        if (!is_array($crDataExisting)) $crDataExisting = [];
+
+        $crDataMerged = $crDataExisting;
+        if ($dobType !== null && $dobType !== '') {
+            $crDataMerged['date_type_of_birth'] = $dobType;
+        }
+
+        // تنفيذ ذري
+        DB::beginTransaction();
+        try {
+            // حدث العميل
+            if (!empty($customerData)) {
+                $customer->fill($customerData);
+            }
+            // خزّن cr_data المدموج إذا تغيّر
+            if ($crDataMerged !== $crDataExisting) {
+                $customer->cr_data = $crDataMerged;
+            }
+            $customer->save();
+
+            // تحديث المستخدم المرتبط (email + trade_name إن وجد عمود)
+            if ($customer->user) {
+                $user = $customer->user;
+                $userData = [];
+
+                if ($email) {
+                    // تحقق فريد للبريد
+                    $vUser = Validator::make(['email' => $email], [
+                        'email' => ['email', Rule::unique('users','email')->ignore($user->id)],
+                    ]);
+                    if ($vUser->fails()) {
+                        // لو البريد مكرر، لا توقف العملية كلها — فقط تجاوز البريد
+                        $email = null;
+                    } else {
+                        $userData['email'] = $email;
+                    }
+                }
+
+                if ($tradeName) {
+                    if (Schema::hasColumn('users','name')) {
+                        $userData['name'] = $tradeName;
+                    } elseif (Schema::hasColumn('users','first_name')) {
+                        // إن ما عندك name، خزّنه في first_name كتسوية
+                        $userData['first_name'] = $tradeName;
+                    }
+                }
+
+                if (!empty($userData)) {
+                    $user->fill($userData)->save();
+                }
+            }
+
+            DB::commit();
+
+            // رجّع نسخة محدّثة (بدون تسريب القيم المشفّرة)
+            return response()->json([
+                'status' => true,
+                'msg'    => 'Customer updated successfully.',
+                'data'   => [
+                    'customer_id'               => $customer->id,
+                    'cr_number'                 => $customer->cr_number,
+                    'tax_number'                => $customer->tax_number,
+                    'business_category_id'      => $customer->business_category_id,
+                    'purchasing_natures'        => $customer->purchasing_natures,
+                    'purchasing_volume'         => $customer->purchasing_volume,
+                    'other_purchasing_natures'  => $customer->other_purchasing_natures,
+                    'date_of_birth'             => $customer->date_of_birth ? $customer->date_of_birth->format('Y-m-d') : null,
+                    'cr_data'                   => $customer->cr_data,
+                    'user' => $customer->relationLoaded('user') && $customer->user ? [
+                        'id'    => $customer->user->id,
+                        'email' => $customer->user->email,
+                        'name'  => Schema::hasColumn('users','name') ? ($customer->user->name ?? null) : null,
+                    ] : null,
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E_UPDATE_FAILED',
+                'msg'    => 'Failed to update customer.',
+                'error'  => app()->hasDebugModeEnabled() ? $e->getMessage() : null,
+            ], 500);
+        }
     }
 
 }
