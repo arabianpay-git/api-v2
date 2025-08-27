@@ -143,7 +143,7 @@ class UsersController extends Controller
             'id' => $user->id,
             'name' => $user->first_name . ' ' . $user->last_name,
             'business_name' => $user->business_name??'-',
-            'email' => $user->email,
+            'email' => "hdsdjhsjdhjsd",
             'id_number' => (int)$user->iqama??$user->customer?->id_number,    // assuming iqama is your id_number
             'phone' => $user->phone_number,
             'token' => $request->bearerToken(), 
