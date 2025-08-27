@@ -786,7 +786,7 @@ class UsersController extends Controller
 
         if($user){
             $user->email = $email ?? $user->email;
-            $user->bussiness_name = $tradeName ?? $user->first_name;
+            $user->business_name = $tradeName ?? $user->first_name;
             $user->save();
         }
             // رجّع نسخة محدّثة (بدون تسريب القيم المشفّرة)
