@@ -767,6 +767,9 @@ class UsersController extends Controller
         $customer = Customer::where('user_id',$userId)->first();
 
         Log::info('Customer record fetched: '.($customer ? 'found' : 'not found'));
+
+        Log::info('this is customer'.json_encode($customer));
+        Log::info('this is user'.json_encode($user));
         if (!empty($customer)) {
             try{
                 $customer->business_type_id =  1;
@@ -792,6 +795,8 @@ class UsersController extends Controller
             Log::error('Customer record not found for user_id: '.$userId);
         }
 
+        Log::info('After updating KYC data, before updating User data.');
+
         if($user){
             try{
                 $user->email = $email ?? $user->email;
@@ -809,6 +814,8 @@ class UsersController extends Controller
             }
             
         }
+
+        Log::info('After updating User data, preparing response.');
             // رجّع نسخة محدّثة (بدون تسريب القيم المشفّرة)
             $data = [
                     'customer_id'               => $customer->id,
