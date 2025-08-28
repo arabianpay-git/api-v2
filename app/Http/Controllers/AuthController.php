@@ -39,8 +39,18 @@ class AuthController extends Controller
         $request->validate(['phone_number' => 'required|string']);
         
         // فك التشفير
+        $phone55 = $encryptionService->decrypt($request->input('phone_number'));
         $phone = '966'.$encryptionService->decrypt($request->input('phone_number'));
 
+        $user = User::where('phone_number', $encryptionService->db_encrypt($phone55))->first();
+        
+        if(!$user){
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E404',
+                'msg' => __('api.user_not_found'),
+            ], 404);
+        }
         // Generate 6-digit OTP
         $otpCode = rand(1000, 9999);
 
