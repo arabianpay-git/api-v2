@@ -772,6 +772,7 @@ class UsersController extends Controller
         Log::info('this is user'.json_encode($user));
         if (!empty($customer)) {
             try{
+                Log::info('Begin updating KYC data for user_id: '.$userId);
                 $customer->business_type_id =  1;
                 $customer->business_category_id = $categoryId;
                 $customer->cr_number = $crNumber;
@@ -799,6 +800,7 @@ class UsersController extends Controller
 
         if($user){
             try{
+                Log::info('Begin updating User data for user_id: '.$userId);
                 $user->email = $email ?? $user->email;
                 $user->business_name = $tradeName ?? $user->first_name;
                 $user->save();
