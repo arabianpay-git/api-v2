@@ -763,7 +763,7 @@ class UsersController extends Controller
         $user = Auth::user();
         $userId =  $user->id;
         $customer = Customer::where('user_id',$userId)->first();
-        if (!$customer) {
+        if (!empty($customer)) {
             try{
                 $customer->business_type_id =  $purchNatures;
                 $customer->business_category_id = $categoryId;
