@@ -765,7 +765,7 @@ class UsersController extends Controller
         $customer = Customer::where('user_id',$userId)->first();
         if (!empty($customer)) {
             try{
-                $customer->business_type_id =  $purchNatures;
+                $customer->business_type_id =  1;
                 $customer->business_category_id = $categoryId;
                 $customer->cr_number = $crNumber;
                 $customer->tax_number = $taxNumber;
@@ -822,6 +822,7 @@ class UsersController extends Controller
                         'name'  => Schema::hasColumn('users','name') ? ($customer->user->name ?? null) : null,
                     ] : null,
             ];
+            Log::info('KYC process completed successfully for user_id: '.$userId);
             return $this->returnData($data, 'KYC data saved successfully.');
         
     }
