@@ -268,95 +268,56 @@ class ProductsController extends Controller
         ],'Product success');
     }
 
-    public function getProductFilters(Request $request)
+    public function getProductFilters()
     {
-         $productsQuery = Product::select([
-                'id','name','brand_id','thumbnail','discount','discount_type',
-                'unit_price as main_price','unit_price as stroked_price','rating','current_stock'
-            ])
-            ->with(['brand:id,name'])
-            ->where('published', 'published')
-            ->where('approved', 'approved')
-            ->whereNotNull('name')
-            ->whereNotNull('thumbnail');
+        try{
+            // 1) Fetch brands: all published brands used in products
+            $brands = Brand::select('id', 'name')
+                ->whereHas('products') // if you only want brands with products
+                ->orderBy('name')
+                ->get();
 
-        // ✅ فلتر حسب المتجر (store_ids[])
-        $storeIds = collect(Arr::wrap($request->input('store_ids')))
-            ->filter(fn($v) => $v !== null && $v !== '')
-            ->map(fn($v) => (int) $v)
-            ->unique()
-            ->values()
-            ->all();
+            // 2) Fetch categories recursively with children
+            $categories = Category::with(['childrenRecursive'])
+                ->where('parent_id', 0)
+                ->select('id', 'name', 'banner as image', 'parent_id')
+                ->get()
+                ->map(function ($category) {
+                    return [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'image' => $category->image ?'https://core.arabianpay.net'.$category->image:'https://api.arabianpay.net/public/placeholder.jpg',
+                        'parent_id' => $category->parent_id,
+                        'children' => $this->mapChildren($category->childrenRecursive),
+                    ];
+                });
 
-        // ✅ فلتر حسب البراند (store_ids[])
-        $brandIds = collect(Arr::wrap($request->input('brand_id')))
-            ->filter(fn($v) => $v !== null && $v !== '')
-            ->map(fn($v) => (int) $v)
-            ->unique()
-            ->values()
-            ->all();
+            // 3) Fetch stores from shops
+            $stores = ShopSetting::select('id', 'user_id', 'name', 'logo')
+                ->limit(50) // optional limit
+                ->get()
+                ->map(function ($shop) {
+                    return [
+                        'id' => $shop->id,
+                        'slug' => \Str::slug($shop->name) . '-' . $shop->id,
+                        'user_id' => $shop->user_id,
+                        'name' => $shop->name,
+                        'logo' => url($shop->logo),
+                        'cover' => $this->fullImageUrl($shop->banner),
+                        'rating' => 0, // static or pull from review system
+                    ];
+                });
 
-        if (!empty($storeIds)) {
-            // غيّر 'user_id' إلى 'shop_id' إذا كان هذا هو عمود الربط عندك
-            $productsQuery->whereIn('user_id', $storeIds);
-        }
-
-        if (!empty($brandIds)) {
-            // غيّر 'user_id' إلى 'brand_id' إذا كان هذا هو عمود الربط عندك
-            $productsQuery->whereIn('brand_id', $brandIds);
-        }
-
-        // ✅ فلتر حسب الفئة (category_ids[])
-        $categoryIds = collect(Arr::wrap($request->input('category_ids')))
-            ->filter(fn($v) => $v !== null && $v !== '')
-            ->map(fn($v) => (int) $v)
-            ->unique()
-            ->values()
-            ->all();
-
-        if (!empty($categoryIds)) {
-            $productsQuery->whereIn('category_id', $categoryIds);
-        }
-
-        // ✅ فلتر حسب الاسم
-        if ($request->filled('name')) {
-            $productsQuery->where('name', 'LIKE', '%'.$request->name.'%');
-        }
-
-        // ✅ ترتيب
-        switch ($request->input('sort_key')) {
-            case 'price_asc':  $productsQuery->orderBy('unit_price', 'asc');  break;
-            case 'price_desc': $productsQuery->orderBy('unit_price', 'desc'); break;
-            case 'newest':     $productsQuery->orderBy('id', 'desc');         break;
-            case 'rating':     $productsQuery->orderBy('rating', 'desc');     break;
-            default:           $productsQuery->orderBy('id', 'desc');         break;
-        }
-
-        $products = $productsQuery->paginate(20);
-
-        $productsTransformed = $products->getCollection()->map(function ($product) {
-            return [
-                'id'               => $product->id,
-                'name'             => $product->name,
-                'brand'            => optional($product->brand)->name ?? 'Generic',
-                'thumbnail_image'  => $this->fullImageUrl($product->thumbnail),
-                'has_discount'     => $product->discount > 0,
-                'discount'         => (float) $product->discount,
-                'discount_type'    => $product->discount_type,
-                'stroked_price'    => (float) $product->stroked_price,
-                'main_price'       => (float) $this->calculateMainPrice($product),
-                'rating'           => (float) $product->rating,
-                'num_reviews'      => 0,
-                'is_wholesale'     => false,
-                'currency_symbol'  => 'SR',
-                'in_stock'         => (bool) ($product->current_stock > 0),
+            $data = [
+                'brands' => $brands,
+                'categories' => $categories,
+                'stores' => $stores,
             ];
-        });
 
-        return $this->returnData([
-            'total'    => $products->total(),
-            'products' => $productsTransformed,
-        ]);
+            return $this->returnData($data);
+        }catch(Exception $ex){
+            return $this->returnData([]);
+        }
     }
 
 
