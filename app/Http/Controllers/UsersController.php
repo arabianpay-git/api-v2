@@ -773,7 +773,7 @@ class UsersController extends Controller
         if ($customer) {
             try{
                 Log::info('Begin updating KYC data for user_id: '.$userId);
-                $customer->business_type_id =  1;
+                //$customer->business_type_id =  1;
                 $customer->business_category_id = json_encode($categoryId, JSON_UNESCAPED_UNICODE);
                 $customer->cr_number = $crNumber;
                 $customer->tax_number = $taxNumber;
