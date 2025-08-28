@@ -781,6 +781,7 @@ class UsersController extends Controller
                 $customer->purchasing_volume = $purchVolume;
                 $customer->other_purchasing_natures = $otherPurch;
                 //$customer->date_of_birth =$dobRaw;
+                $customer->complete = 1;
                 $customer->save();
 
                 Log::info('Customer KYC data saved successfully for user_id: '.$userId);
