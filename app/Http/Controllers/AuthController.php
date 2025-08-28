@@ -267,8 +267,9 @@ class AuthController extends Controller
                     'msg' => 'Dummy user not found in database.',
                 ], 404);
             }
-
+            $user->tokens()->delete(); 
             Auth::login($user);
+            
             $token = $user->createToken('auth_token')->plainTextToken;
 
             $data = ["id" => $user->id,
@@ -323,7 +324,7 @@ class AuthController extends Controller
 
         $user->notification_token = $notificationToken;
         $user->save();
-
+        $user->tokens()->delete();
         Auth::login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
 
