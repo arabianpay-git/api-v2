@@ -10,6 +10,7 @@ use App\Models\Shop;
 use App\Models\ShopSetting;
 use App\Models\Slider;
 use App\Traits\ApiResponseTrait;
+use Arr;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,83 +21,80 @@ class ProductsController extends Controller
 
     public function index(Request $request)
     {
-        
         $productsQuery = Product::select([
-            'id',
-            'name',
-            'brand_id',
-            'thumbnail',
-            'discount',
-            'discount_type',
-            'unit_price as main_price',
-            'unit_price as stroked_price',
-            'rating',
-            'current_stock'
-        ])
-        ->with(['brand:id,name'])
-        ->where('published', 'published')
-        ->where('approved', 'approved')
-        ->whereNotNull('name')
-        ->whereNotNull('thumbnail');
+                'id','name','brand_id','thumbnail','discount','discount_type',
+                'unit_price as main_price','unit_price as stroked_price','rating','current_stock'
+            ])
+            ->with(['brand:id,name'])
+            ->where('published', 'published')
+            ->where('approved', 'approved')
+            ->whereNotNull('name')
+            ->whereNotNull('thumbnail');
+
+        // ✅ فلتر حسب المتجر (store_ids[])
+        $storeIds = collect(Arr::wrap($request->input('store_ids')))
+            ->filter(fn($v) => $v !== null && $v !== '')
+            ->map(fn($v) => (int) $v)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (!empty($storeIds)) {
+            // غيّر 'user_id' إلى 'shop_id' إذا كان هذا هو عمود الربط عندك
+            $productsQuery->whereIn('user_id', $storeIds);
+        }
 
         // ✅ فلتر حسب الفئة (category_ids[])
-        if ($request->has('category_ids') && is_array($request->category_ids)) {
-            $productsQuery->whereIn('category_id', $request->category_ids);
+        $categoryIds = collect(Arr::wrap($request->input('category_ids')))
+            ->filter(fn($v) => $v !== null && $v !== '')
+            ->map(fn($v) => (int) $v)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (!empty($categoryIds)) {
+            $productsQuery->whereIn('category_id', $categoryIds);
         }
 
-        // ✅ فلتر حسب الاسم (name)
+        // ✅ فلتر حسب الاسم
         if ($request->filled('name')) {
-            $productsQuery->where('name', 'LIKE', '%' . $request->name . '%');
+            $productsQuery->where('name', 'LIKE', '%'.$request->name.'%');
         }
 
-        // ✅ ترتيب حسب (sort_key)
+        // ✅ ترتيب
         switch ($request->input('sort_key')) {
-            case 'price_asc':
-                $productsQuery->orderBy('unit_price', 'asc');
-                break;
-            case 'price_desc':
-                $productsQuery->orderBy('unit_price', 'desc');
-                break;
-            case 'newest':
-                $productsQuery->orderBy('id', 'desc');
-                break;
-            case 'rating':
-                $productsQuery->orderBy('rating', 'desc');
-                break;
-            default:
-                $productsQuery->orderBy('id', 'desc');
-                break;
+            case 'price_asc':  $productsQuery->orderBy('unit_price', 'asc');  break;
+            case 'price_desc': $productsQuery->orderBy('unit_price', 'desc'); break;
+            case 'newest':     $productsQuery->orderBy('id', 'desc');         break;
+            case 'rating':     $productsQuery->orderBy('rating', 'desc');     break;
+            default:           $productsQuery->orderBy('id', 'desc');         break;
         }
 
-        // ✅ تنفيذ الاستعلام مع pagination
         $products = $productsQuery->paginate(20);
 
-        // ✅ تحويل النتائج
         $productsTransformed = $products->getCollection()->map(function ($product) {
             return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'brand' => optional($product->brand)->name ?? 'Generic',
-                'thumbnail_image' => $this->fullImageUrl($product->thumbnail),
-                'has_discount' => $product->discount > 0,
-                'discount' => (float)$product->discount,
-                'discount_type' => $product->discount_type,
-                'stroked_price' => (float)$product->stroked_price,
-                'main_price' => (float)$this->calculateMainPrice($product),
-                'rating' => (float)$product->rating,
-                'num_reviews' => 0,
-                'is_wholesale' => false,
-                'currency_symbol' => 'SR',
-                'in_stock' => (bool)($product->current_stock > 0),
+                'id'               => $product->id,
+                'name'             => $product->name,
+                'brand'            => optional($product->brand)->name ?? 'Generic',
+                'thumbnail_image'  => $this->fullImageUrl($product->thumbnail),
+                'has_discount'     => $product->discount > 0,
+                'discount'         => (float) $product->discount,
+                'discount_type'    => $product->discount_type,
+                'stroked_price'    => (float) $product->stroked_price,
+                'main_price'       => (float) $this->calculateMainPrice($product),
+                'rating'           => (float) $product->rating,
+                'num_reviews'      => 0,
+                'is_wholesale'     => false,
+                'currency_symbol'  => 'SR',
+                'in_stock'         => (bool) ($product->current_stock > 0),
             ];
         });
 
-        $data = [
-            'total' => $products->total(),
+        return $this->returnData([
+            'total'    => $products->total(),
             'products' => $productsTransformed,
-        ];
-
-        return $this->returnData($data);
+        ]);
     }
 
     public function getProductRelated($id)
