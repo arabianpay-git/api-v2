@@ -39,9 +39,22 @@ class ProductsController extends Controller
             ->values()
             ->all();
 
+        // ✅ فلتر حسب البراند (store_ids[])
+        $brandIds = collect(Arr::wrap($request->input('brand_id')))
+            ->filter(fn($v) => $v !== null && $v !== '')
+            ->map(fn($v) => (int) $v)
+            ->unique()
+            ->values()
+            ->all();
+
         if (!empty($storeIds)) {
             // غيّر 'user_id' إلى 'shop_id' إذا كان هذا هو عمود الربط عندك
             $productsQuery->whereIn('user_id', $storeIds);
+        }
+
+        if (!empty($brandIds)) {
+            // غيّر 'user_id' إلى 'brand_id' إذا كان هذا هو عمود الربط عندك
+            $productsQuery->whereIn('brand_id', $brandIds);
         }
 
         // ✅ فلتر حسب الفئة (category_ids[])
