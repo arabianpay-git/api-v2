@@ -774,6 +774,8 @@ class UsersController extends Controller
                 $customer->other_purchasing_natures = $otherPurch;
                 $customer->date_of_birth =$dobRaw;
                 $customer->save();
+
+                Log::info('Customer KYC data saved successfully for user_id: '.$userId);
             }catch(\Exception $e){
                 Log::error('Failed to save KYC data: '.$e->getMessage());
                 return response()->json([
@@ -782,6 +784,8 @@ class UsersController extends Controller
                     'msg'    =>  app()->hasDebugModeEnabled() ? $e->getMessage() : 'Failed to save KYC data.',
                 ]);
             }
+        }else{
+            Log::error('Customer record not found for user_id: '.$userId);
         }
 
         if($user){
@@ -789,6 +793,8 @@ class UsersController extends Controller
                 $user->email = $email ?? $user->email;
                 $user->business_name = $tradeName ?? $user->first_name;
                 $user->save();
+
+                Log::info('User email and business name updated successfully for user_id: '.$userId);
             }catch(\Exception $e){
                 Log::error('Failed to update user: '.$e->getMessage());
                 return response()->json([
