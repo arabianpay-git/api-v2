@@ -758,11 +758,15 @@ class UsersController extends Controller
             'date_type_of_birth'       => $dobType,
         ]);
 
-        
+        Log::info('Before updating KYC data.');
         // اجلب العميل
         $user = Auth::user();
         $userId =  $user->id;
+        Log::info('Authenticated user ID: '.$userId);
+
         $customer = Customer::where('user_id',$userId)->first();
+
+        Log::info('Customer record fetched: '.($customer ? 'found' : 'not found'));
         if (!empty($customer)) {
             try{
                 $customer->business_type_id =  1;
