@@ -40,7 +40,7 @@ class ProductsController extends Controller
             ->all();
 
         // ✅ فلتر حسب البراند (store_ids[])
-        $brandIds = collect(Arr::wrap($request->input('brand_id')))
+        $brandIds = collect(Arr::wrap($request->input('brand_ids')))
             ->filter(fn($v) => $v !== null && $v !== '')
             ->map(fn($v) => (int) $v)
             ->unique()
