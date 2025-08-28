@@ -774,10 +774,10 @@ class UsersController extends Controller
             try{
                 Log::info('Begin updating KYC data for user_id: '.$userId);
                 $customer->business_type_id =  1;
-                $customer->business_category_id = $categoryId;
+                $customer->business_category_id = json_encode($categoryId, JSON_UNESCAPED_UNICODE);
                 $customer->cr_number = $crNumber;
                 $customer->tax_number = $taxNumber;
-                $customer->purchasing_natures = $purchNatures;
+                $customer->purchasing_natures = json_encode($purchNatures, JSON_UNESCAPED_UNICODE);;
                 $customer->purchasing_volume = $purchVolume;
                 $customer->other_purchasing_natures = $otherPurch;
                 //$customer->date_of_birth =$dobRaw;
