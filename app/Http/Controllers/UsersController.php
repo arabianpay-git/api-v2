@@ -770,7 +770,7 @@ class UsersController extends Controller
 
         Log::info('this is customer'.json_encode($customer));
         Log::info('this is user'.json_encode($user));
-        if (!empty($customer)) {
+        if ($customer) {
             try{
                 Log::info('Begin updating KYC data for user_id: '.$userId);
                 $customer->business_type_id =  1;
