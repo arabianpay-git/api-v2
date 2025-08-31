@@ -259,7 +259,7 @@ class AuthController extends Controller
 
         // Dummy shortcut for development testing
         if ($phone === "555555555" || $phone === "0555555555" || $phone === "966555555555" || $request->input('phone_number') === "XOUnkyn8gZIuZBmjb0VYxA==") {
-            $user = Auth::user();
+            $user = User::findOrFail(374);
             if (! $user) {
                 return response()->json([
                     'status' => false,
