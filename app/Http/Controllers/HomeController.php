@@ -503,13 +503,13 @@ class HomeController extends Controller
             ->get()
             ->map(function ($slider) {
                 return [
-                    'image' => 'https://api.arabianpay.net/uploads/'.$slider->image, // No banner images in table
+                    'image' => 'https://api.arabianpay.net/new-ads2.png', // No banner images in table
                     'image_id' => (string) $slider->id,
                     'target' => [
                         'type' => 'brand',
                         'id' => 1,
                         'name' => 'Generic',
-                        'image' => 'https://api.arabianpay.net/uploads/'.$slider->image,
+                        'image' => 'https://api.arabianpay.net/new-ads2.png',
                         'rating' => 0
                     ], // No target data in table
                 ];
