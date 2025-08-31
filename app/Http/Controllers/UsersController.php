@@ -26,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Log;
 use Schema;
+use Str;
 use Validator;
 
 class UsersController extends Controller
@@ -49,39 +50,55 @@ class UsersController extends Controller
 
         // Payments due soon formatted
         $paymentDueSoon = Transaction::where('user_id', $userId)
-            ->with(['schedulePayments' => function ($q) {
+        ->with([
+            // مهم علشان ما يصير N+1:
+            'order',
+            'seller.shop',
+            'schedulePayments' => function ($q) {
                 $q->orderBy('due_date');
-            }, 'store'])
-            ->get()
-            ->map(function ($tx) {
-                return [
-                    "transaction_id" => $tx->uuid,
-                    "reference_id" => $tx->order->reference_id ?? 'N/A',
-                    "name_shop" => $tx->seller->shop->name ?? '--',
-                    "schedule_payments" => $tx->schedulePayments->map(function ($sp) {
-                        return [
-                            "payment_id" => $sp->transaction_id,
-                            "reference_id" => $sp->id,
-                            "name_shop" => "freedooo",
-                            "installment_number" => $sp->installment_number,
-                            "current_installment" => $sp->is_current_installment,
-                            "date" => Carbon::parse($sp->due_date)->format('M d, Y'),
-                            "amount" => [
-                                "amount" => number_format($sp->instalment_amount, 2),
-                                "symbol" => "SR"
-                            ],
-                            "late_fee" => [
-                                "amount" => number_format($sp->late_fee, 2),
-                                "symbol" => "SR"
-                            ],
-                            "status" => [
-                                "name" => ucfirst($sp->payment_status),
-                                "slug" => $sp->payment_status
-                            ]
-                        ];
-                    })
-                ];
+            },
+        ])
+        ->get()
+        ->map(function ($tx) {
+            // مجموعة الأقساط مرتبة
+            $payments = $tx->schedulePayments->values();
+
+            // نبحث عن أول قسط غير مدفوع وسابقه مدفوع
+            $currentIndex = $payments->search(function ($sp, $i) use ($payments) {
+                $prevPaid  = $i === 0 ? true : (Str::lower($payments[$i - 1]->payment_status) === 'paid');
+                $thisPaid  = Str::lower($sp->payment_status) === 'paid';
+                return !$thisPaid && $prevPaid;
             });
+
+            return [
+                "transaction_id" => $tx->uuid,
+                "reference_id"   => $tx->order->reference_id ?? 'N/A',
+                "name_shop"      => $tx->seller->shop->name ?? '--',
+                "schedule_payments" => $payments->map(function ($sp, $i) use ($currentIndex) {
+                    return [
+                        "payment_id"          => $sp->transaction_id,
+                        "reference_id"        => $sp->id,
+                        "name_shop"           => "freedooo",
+                        "installment_number"  => $sp->installment_number,
+                        // true فقط لأول قسط تنطبق عليه القاعدة
+                        "current_installment" => $i === $currentIndex,
+                        "date"                => Carbon::parse($sp->due_date)->format('M d, Y'),
+                        "amount" => [
+                            "amount" => number_format($sp->instalment_amount, 2),
+                            "symbol" => "SR",
+                        ],
+                        "late_fee" => [
+                            "amount" => number_format($sp->late_fee, 2),
+                            "symbol" => "SR",
+                        ],
+                        "status" => [
+                            "name" => ucfirst($sp->payment_status),
+                            "slug" => $sp->payment_status,
+                        ],
+                    ];
+                }),
+            ];
+        });
 
         // Load sliders, banners, top store, etc.
         $dashboardSlider = AdsSlider::take(10)->get()->map(function ($item) {
