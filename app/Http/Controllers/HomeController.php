@@ -536,25 +536,35 @@ class HomeController extends Controller
         });
     }
 
-
-    protected function getSliders()
+    public function getSliders()
     {
-
-        return AdsSlider::select('image', 'id')
+        $sliders = AdsSlider::query()
+            ->select('id', 'image')
+            ->whereNotNull('image')          // اختياري
+            ->orderByDesc('id')              // ترتيب حديث أولاً (اختياري)
+            ->limit(5)                       // حد في SQL
+            ->get()                          // الآن صارت Collection
             ->map(function ($slider) {
+                $img = media_url_guess($slider->image); // يفترض دالتك ترجع URL صحيح
                 return [
-                    'image' => media_url_guess($slider->image), 
+                    'image'  => $img,
                     'target' => [
-                      'type' => 'brand',
-                      'id' => 1,
-                      'name' => 'Generic',
-                      'image' => media_url_guess($slider->image),
-                      'rating' => 0
-                  ], // No target data in table
+                        'type'   => 'brand',
+                        'id'     => 1,
+                        'name'   => 'Generic',
+                        'image'  => $img,
+                        'rating' => 0,
+                    ],
                 ];
-            })->take(5)->values();
-    }
-    
+            })
+            ->values();
+
+        // إن كنت تريد JSON مباشرة:
+        return response()->json($sliders, 200);
+
+        // أو إن كنت تستخدم returnData:
+        // return $this->returnData($sliders->toArray(), 'Sliders retrieved successfully.');
+    }    
 
     protected function getBanner1()
     {
