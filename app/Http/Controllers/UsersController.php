@@ -45,7 +45,7 @@ class UsersController extends Controller
 
         $totalDue = $schedulePayments->sum('instalment_amount');
         $totalPaid = SchedulePayment::where('user_id', $userId)->where('payment_status', 'paid')->sum('instalment_amount');
-        $limit = CustomerCreditLimit::where('user_id', $userId)->sum('limit_arabianpay_after');
+        $limit = 8000;
 
         // Payments due soon formatted
         $paymentDueSoon = Transaction::where('user_id', $userId)
