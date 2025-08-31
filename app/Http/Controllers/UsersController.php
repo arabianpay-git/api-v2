@@ -310,62 +310,147 @@ class UsersController extends Controller
             default     => ucfirst($s ?: 'Unknown'),
         };
     }
+    // public function getSpent(Request $request)
+    // {
+
+    //     $userId = $request->user()->id;
+    //     $data = [
+    //         'status' => true,
+    //         'errNum' => 'S200',
+    //         'msg' => 'Spending stats fetched successfully.',
+    //         'data' => [
+    //             'credit_limit' => [
+    //                 'amount' => 5000,
+    //                 'currency' => 'SR',
+    //             ],
+    //             'total_spent' => [
+    //                 'amount' => $this->getTotalSpentPrincipal($userId),
+    //                 'currency' => 'SR',
+    //             ],
+    //             'total_cate_purchases' => [
+    //                 $this->getCategoryPurchasesFromJson($userId)
+    //             ],
+    //             'monthly_spending_stats' => [
+    //                 [
+    //                     'date' => '2025-06',
+    //                     'spent' => [
+    //                         'amount' => 1000,
+    //                         'currency' => 'SR',
+    //                     ]
+    //                 ],
+    //                 [
+    //                     'date' => '2025-07',
+    //                     'spent' => [
+    //                         'amount' => 500,
+    //                         'currency' => 'SR',
+    //                     ]
+    //                 ]
+    //             ],
+    //             'top_store' => [
+    //                 [
+    //                     'store_id' => 5,
+    //                     'store_name' => 'Extra',
+    //                     'amount_spent' => 600,
+    //                     'currency' => 'SR',
+    //                 ],
+    //                 [
+    //                     'store_id' => 9,
+    //                     'store_name' => 'Jarir',
+    //                     'amount_spent' => 400,
+    //                     'currency' => 'SR',
+    //                 ]
+    //             ]
+    //         ]
+    //     ];
+
+    //     return $this->returnData($data);
+
+    // }
+
     public function getSpent(Request $request)
-    {
+{
+    $userId   = $request->user()->id;
+    $currency = 'SR'; // أو: config('app.currency', 'SR')
 
-        $userId = $request->user()->id;
-        $data = [
-            'status' => true,
-            'errNum' => 'S200',
-            'msg' => 'Spending stats fetched successfully.',
-            'data' => [
-                'credit_limit' => [
-                    'amount' => 5000,
-                    'currency' => 'SR',
-                ],
-                'total_spent' => [
-                    'amount' => $this->getTotalSpentPrincipal($userId),
-                    'currency' => 'SR',
-                ],
-                'total_cate_purchases' => [
-                    $this->getCategoryPurchasesFromJson($userId)
-                ],
-                'monthly_spending_stats' => [
-                    [
-                        'date' => '2025-06',
-                        'spent' => [
-                            'amount' => 1000,
-                            'currency' => 'SR',
-                        ]
-                    ],
-                    [
-                        'date' => '2025-07',
-                        'spent' => [
-                            'amount' => 500,
-                            'currency' => 'SR',
-                        ]
-                    ]
-                ],
-                'top_store' => [
-                    [
-                        'store_id' => 5,
-                        'store_name' => 'Extra',
-                        'amount_spent' => 600,
-                        'currency' => 'SR',
-                    ],
-                    [
-                        'store_id' => 9,
-                        'store_name' => 'Jarir',
-                        'amount_spent' => 400,
-                        'currency' => 'SR',
-                    ]
-                ]
-            ]
-        ];
+    // 1) حدّ الائتمان (نأخذ آخر سجل فعّال). غيّر أسماء الأعمدة حسب جدولك
+    $creditLimit = DB::table('customer_credit_limits')
+        ->where('user_id', $userId)
+        ->whereIn('status', ['active', 'approved'])
+        ->orderByDesc('id')
+        ->value(DB::raw('COALESCE(available_limit, credit_limit, limit_amount)'));
+    $creditLimit = (float) ($creditLimit ?? 0);
 
-        return $this->returnData($data);
+    // 2) إجمالي الإنفاق (عندك دالة جاهزة—نستخدمها كما هي)
+    $totalSpent = (float) $this->getTotalSpentPrincipal($userId);
 
-    }
+    // 3) مشتريات حسب الفئات (دالتك الجاهزة — لا تلفها داخل مصفوفة)
+    $totalCatePurchases = $this->getCategoryPurchasesFromJson($userId);
+
+    // 4) إحصائيات شهرية: نجمع أقساط مدفوعة/متأخرة حسب الشهر
+    // غيّر أسماء الجدول/الأعمدة إن لزم: schedule_payments, instalment_amount, late_fee, payment_status, paid_at, due_date
+    $monthlySpending = DB::table('schedule_payments as sp')
+        ->join('transactions as t', 't.id', '=', 'sp.transaction_id')
+        ->where('t.user_id', $userId)
+        ->whereIn('sp.payment_status', ['paid', 'overdue'])
+        ->selectRaw("DATE_FORMAT(COALESCE(sp.paid_at, sp.due_date), '%Y-%m') as ym")
+        ->selectRaw("SUM(sp.instalment_amount + sp.late_fee) as spent")
+        ->groupBy('ym')
+        ->orderBy('ym')
+        ->get()
+        ->map(fn ($row) => [
+            'date'  => $row->ym,
+            'spent' => [
+                'amount'   => round((float) $row->spent, 2),
+                'currency' => $currency,
+            ],
+        ])
+        ->values();
+
+    // 5) أعلى المتاجر إنفاقًا: نجمع على مستوى المتجر
+    // التوصيل للمتجر يختلف من مشروع لآخر؛ هنا نفترض أن transaction مرتبطة ببائع لديه متجر.
+    // لو عندك علاقة/جدول مختلف عدّل الـ JOINات.
+    $topStores = DB::table('transactions as t')
+        ->join('schedule_payments as sp', 'sp.transaction_id', '=', 't.id')
+        ->leftJoin('sellers as s', 's.id', '=', 't.seller_id')              // إن وجد
+        ->leftJoin('shops as sh', 'sh.user_id', '=', 's.id')                 // إن كان المتجر مرتبطًا بالمستخدم/البائع
+        ->where('t.user_id', $userId)
+        ->whereIn('sp.payment_status', ['paid', 'overdue'])
+        ->groupBy('sh.id', 'sh.name', 's.id', 's.name')
+        ->selectRaw('COALESCE(sh.id, s.id) as store_id')
+        ->selectRaw('COALESCE(sh.name, s.name, "Unknown") as store_name')
+        ->selectRaw('SUM(sp.instalment_amount + sp.late_fee) as amount_spent')
+        ->orderByDesc('amount_spent')
+        ->limit(5)
+        ->get()
+        ->map(fn ($row) => [
+            'store_id'     => $row->store_id,
+            'store_name'   => $row->store_name,
+            'amount_spent' => round((float) $row->amount_spent, 2),
+            'currency'     => $currency,
+        ]);
+
+    $data = [
+        'status' => true,
+        'errNum' => 'S200',
+        'msg'    => 'Spending stats fetched successfully.',
+        'data'   => [
+            'credit_limit' => [
+                'amount'   => $creditLimit,
+                'currency' => $currency,
+            ],
+            'total_spent' => [
+                'amount'   => $totalSpent,
+                'currency' => $currency,
+            ],
+            // ⚠️ مهم: لا تضعها داخل []
+            'total_cate_purchases'   => $totalCatePurchases,
+            'monthly_spending_stats' => $monthlySpending,
+            'top_store'              => $topStores,
+        ],
+    ];
+
+    return $this->returnData($data);
+}
 
     function getCategoryPurchasesFromJson(int $userId, string $currency = 'SR'): array
     {
