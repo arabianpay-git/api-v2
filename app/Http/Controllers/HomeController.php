@@ -540,7 +540,7 @@ class HomeController extends Controller
     protected function getSliders()
     {
 
-        return AdsSlider::select('image', 'id')->take(5)
+        return AdsSlider::select('image', 'id')
             ->map(function ($slider) {
                 return [
                     'image' => media_url_guess($slider->image), 
@@ -552,7 +552,7 @@ class HomeController extends Controller
                       'rating' => 0
                   ], // No target data in table
                 ];
-            });
+            })->take(5)->values();
     }
     
 
