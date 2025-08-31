@@ -16,6 +16,7 @@ use App\Models\ShopSetting;
 use App\Models\Slider;
 use App\Models\User;
 use App\Models\User2;
+use Auth;
 use Carbon\Carbon;
 use DB;
 use Illuminate\Http\JsonResponse;
@@ -400,54 +401,112 @@ class HomeController extends Controller
 
     protected function getFeaturedProducts()
     {
-        return Product::select([
+        $userId = Auth::id();
+        // 1) أجلب طلبات المستخدم (نقرأ product_details فقط)
+        $orders = DB::table('orders')
+            ->where('user_id', $userId)
+            // لو عندك عمود status وتبغى المكتملة فقط:
+            // ->whereIn('status', ['completed', 'delivered'])
+            ->orderByDesc('id')
+            ->select('product_details', 'created_at')
+            ->get();
+
+        // 2) فك JSON واجمع إحصاءات لكل product_id
+        $stats = []; // [product_id => ['total_qty'=>..,'times'=>..,'last'=>..]]
+        foreach ($orders as $o) {
+            $items = json_decode($o->product_details ?? '[]', true);
+            if (!is_array($items)) continue;
+
+            foreach ($items as $it) {
+                $pid = (int) ($it['product_id'] ?? 0);
+                if (!$pid) continue;
+
+                $qty = (float) ($it['quantity'] ?? 0);
+                if (!isset($stats[$pid])) {
+                    $stats[$pid] = [
+                        'total_qty' => 0,
+                        'times'     => 0,
+                        'last'      => $o->created_at,
+                    ];
+                }
+                $stats[$pid]['total_qty'] += $qty;
+                $stats[$pid]['times']     += 1;
+                // آخر تاريخ شراء
+                if (!empty($o->created_at) && $o->created_at > $stats[$pid]['last']) {
+                    $stats[$pid]['last'] = $o->created_at;
+                }
+            }
+        }
+
+        $productIds = array_keys($stats);
+        if (empty($productIds)) {
+            return collect([]); // ما فيه مشتريات
+        }
+
+        // 3) أجلب تفاصيل المنتجات
+        $products = Product::select([
                 'id',
                 'name',
                 'thumbnail',
                 'discount',
                 'discount_type',
+                'unit',                    // اضفناها لأنها مستخدمة في الرد
                 'unit_price as main_price',
                 'unit_price as stroked_price',
                 'rating',
-                'current_stock'
+                'current_stock',
             ])
             ->with(['brand:id,name'])
-            ->where('published', 'published')
-            ->where('featured', 1)
+            ->whereIn('id', $productIds)
             ->whereNotNull('name')
-            ->where('thumbnail','!=',null)
-            ->orderByDesc('number_of_sales')
-            ->limit(15)
-            ->get()
-            ->map(function ($product) {
-                $mainPrice = (float)$product->main_price;
-                $discount = (float)$product->discount;
-                $discountedPrice = $mainPrice;
+            ->where('thumbnail', '!=', null)
+            ->get();
 
-                if (strtolower($product->discount_type) === 'percent') {
-                    $discountedPrice = $mainPrice - ($mainPrice * $discount / 100);
-                } elseif (strtolower($product->discount_type) === 'amount') {
-                    $discountedPrice = $mainPrice - $discount;
-                }
+        // 4) بنينا نفس الفورمات السابق + إحصاءات الشراء
+        $mapped = $products->map(function ($product) use ($stats) {
+            $mainPrice       = (float) $product->main_price;
+            $discount        = (float) ($product->discount ?? 0);
+            $discountedPrice = $mainPrice;
 
-                return [
-                    'id' => $product->id,
-                    'name' => "Tedt",
-                    'brand' => $product->brand->name ?? 'عام',
-                    'thumbnail_image' => media_url_guess($product->thumbnail),
-                    'has_discount' => $discount > 0,
-                    'discount' => $discount,
-                    'unit' => $product->unit,
-                    'discount_type' => $product->discount_type,
-                    'stroked_price' => $mainPrice,
-                    'main_price' => max($discountedPrice, 0), // prevent negative pricing
-                    'rating' => (float)$product->rating,
-                    'num_reviews' => 0, // can replace if using reviews
-                    'is_wholesale' => false,
-                    'currency_symbol' => 'SR',
-                    'in_stock' => $product->current_stock > 0,
-                ];
-            });
+            $type = strtolower((string) $product->discount_type);
+            if ($type === 'percent') {
+                $discountedPrice = $mainPrice - ($mainPrice * $discount / 100);
+            } elseif ($type === 'amount') {
+                $discountedPrice = $mainPrice - $discount;
+            }
+
+            $pStats = $stats[$product->id] ?? ['total_qty'=>0,'times'=>0,'last'=>null];
+
+            return [
+                'id'               => $product->id,
+                'name'             => $product->name ?? '-',
+                'brand'            => $product->brand->name ?? 'عام',
+                'thumbnail_image'  => media_url_guess($product->thumbnail),
+                'has_discount'     => $discount > 0,
+                'discount'         => $discount,
+                'unit'             => $product->unit,
+                'discount_type'    => $product->discount_type,
+                'stroked_price'    => $mainPrice,
+                'main_price'       => max($discountedPrice, 0),
+                'rating'           => (float) $product->rating,
+                'num_reviews'      => 0,
+                'is_wholesale'     => false,
+                'currency_symbol'  => 'SR',
+                'in_stock'         => $product->current_stock > 0,
+
+                // إضافات مفيدة
+                'times_purchased'      => (int) $pStats['times'],
+                'total_purchased_qty'  => (int) $pStats['total_qty'],
+                'last_purchased_at'    => $pStats['last'] ? Carbon::parse($pStats['last'])->toDateTimeString() : null,
+            ];
+        })
+        // رتب حسب آخر شراء ثم عدد المرات
+        ->sortByDesc(fn ($p) => $p['last_purchased_at'])
+        ->sortByDesc(fn ($p) => $p['times_purchased'])
+        ->take(15)
+        ->values();
+
+        return $mapped;
     }
 
 
