@@ -373,11 +373,7 @@ class UsersController extends Controller
     $currency = 'SR'; // أو: config('app.currency', 'SR')
 
     // 1) حدّ الائتمان (نأخذ آخر سجل فعّال). غيّر أسماء الأعمدة حسب جدولك
-    $creditLimit = DB::table('customer_credit_limits')
-        ->where('user_id', $userId)
-        ->whereIn('status', ['active', 'approved'])
-        ->orderByDesc('id')
-        ->value(DB::raw('COALESCE(available_limit, credit_limit, limit_amount)'));
+    $creditLimit = 8000;
     $creditLimit = (float) ($creditLimit ?? 0);
 
     // 2) إجمالي الإنفاق (عندك دالة جاهزة—نستخدمها كما هي)
