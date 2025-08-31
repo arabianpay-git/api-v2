@@ -363,7 +363,7 @@ class HomeController extends Controller
             ->where('thumbnail','!=',null)
             ->where('published', 'published')
             ->orderByDesc('number_of_sales')
-            ->limit(35)
+            ->limit(15)
             ->get()
             ->map(function ($product) {
                 $mainPrice = (float)$product->main_price;
