@@ -289,8 +289,8 @@ class HomeController extends Controller
         ->with(['translations' => function ($query) {
             $query->where('locale', 'ar'); // or the current locale
         }])
-        ->limit(20)
         ->orderBy('id','DESC')
+        ->limit(20)
         ->get()
         ->map(function ($brand) {
             return [
@@ -461,8 +461,8 @@ class HomeController extends Controller
         ])
         ->where('name','!=',null)
         ->where('name','!=',"")
-        ->limit(10) // No rating field, so limit only
         ->orderBy('id','DESC')
+        ->limit(10) // No rating field, so limit only
         ->get()
         ->map(function ($shop) {
             return [
