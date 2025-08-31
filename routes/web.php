@@ -14,7 +14,12 @@ Route::get('/enc', function () {
     return view('encryption');
 });
 
+Route::get('/enc2', function () {
+    return view('encryption2');
+});
+
 Route::post('/encryption-tool', [HomeController::class, 'process'])->name('encryption.tool.process');
+Route::post('/encryption-tool2', [HomeController::class, 'process2'])->name('encryption.tool.process2');
 Route::get('/upload-old', [HomeController::class, 'upload'])->name('upload.old');
 
 

@@ -263,9 +263,9 @@ class AuthController extends Controller
             if (! $user) {
                 return response()->json([
                     'status' => false,
-                    'errNum' => 'E404',
+                    'errNum' => 'E422',
                     'msg' => 'Dummy user not found in database.',
-                ], 404);
+                ]);
             }
             $user->tokens()->delete(); 
             Auth::login($user);

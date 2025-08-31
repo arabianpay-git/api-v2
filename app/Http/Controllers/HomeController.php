@@ -537,6 +537,27 @@ class HomeController extends Controller
 
     }
 
+
+     public function process2(Request $request)
+    {
+        $request->validate([
+            'text' => 'required',
+            'operation' => 'required|in:encrypt,decrypt',
+        ]);
+
+        $encryptionService = new EncryptionService();
+        $result = null;
+
+        if ($request->operation === 'encrypt') {
+            $result = $encryptionService->db_encrypt($request->text);
+        } else {
+            $result = $encryptionService->db_decrypt($request->text);
+        }
+
+        return($result); // Debugging output, remove in production
+
+    }
+
     protected function resolveTargetType($type)
     {
         return match(class_basename($type)) {
