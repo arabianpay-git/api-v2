@@ -71,9 +71,31 @@ class CommonController extends Controller
 
     public function getSocialMedia(): JsonResponse
     {
-        //$socialMedia = DB::table('social_media')->get();
-        $socialMedia = null; // Replace with actual logic to fetch social media links
-        return $this->returnData($socialMedia, 'Social media links retrieved successfully.');
+        $rows = DB::table('social_media')
+            ->select('id', 'name', 'link')   // غيّر الأسماء إذا لزم
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($r) => [
+                'id'   => (int) $r->id,
+                'name' => (string) $r->name,
+                'link' => (string) $r->link,
+            ])
+            ->values();
+
+        // إن ما عندك بيانات في الجدول، نستخدم الافتراضي المطلوب حرفيًا
+        if ($rows->isEmpty()) {
+            $rows = collect([
+                ['id' => 1, 'name' => 'facebook',  'link' => 'https://www.facebook.com/profile.php?id=61552709156007'],
+                ['id' => 2, 'name' => 'tiktok',    'link' => 'https://www.tiktok.com/@arabianpay'],
+                ['id' => 3, 'name' => 'x',         'link' => 'https://x.com/arabianpay'],
+                ['id' => 4, 'name' => 'linkedin',  'link' => 'https://www.linkedin.com/company/arabianpay'],
+                ['id' => 5, 'name' => 'instagram', 'link' => 'https://www.instagram.com/arabian.pay'],
+                ['id' => 6, 'name' => 'snpachat',  'link' => 'https://www.snapchat.com/add/arabianpay'],
+            ]);
+        }
+
+        // نرجّع مصفوفة العناصر مباشرة (نفس الشكل المطلوب)
+        return $this->returnData($rows, 'Social media links retrieved successfully.');
     }
 
     public function getCommonQuestion(): JsonResponse
