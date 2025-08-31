@@ -540,7 +540,7 @@ class HomeController extends Controller
     protected function getSliders()
     {
 
-        return AdsSlider::select('image', 'id')->limit(5)->get()
+        return AdsSlider::select('image', 'id')->orderByDesc('id')->limit(5)->get()
             ->map(function ($slider) {
                 return [
                     'image' => media_url_guess($slider->image), 
