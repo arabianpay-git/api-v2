@@ -406,12 +406,12 @@ class UsersController extends Controller
 
         $data = [
                 'credit_limit' => [
-                    'amount'   => $creditLimit,
-                    'currency' => $currency,
+                    'amount'   => (string)$creditLimit,
+                    'symbol' => $currency,
                 ],
                 'total_spent' => [
-                    'amount'   => $totalSpent,
-                    'currency' => $currency,
+                    'amount'   =>(string) $totalSpent,
+                    'symbol' => $currency,
                 ],
                 // ⚠️ مهم: لا تضعها داخل []
                 'total_cate_purchases'   => $totalCatePurchases,
