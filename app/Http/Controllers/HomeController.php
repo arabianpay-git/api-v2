@@ -432,7 +432,7 @@ class HomeController extends Controller
 
                 return [
                     'id' => $product->id,
-                    'name' => $product->name??'-',
+                    'name' => "Tedt",
                     'brand' => $product->brand->name ?? 'عام',
                     'thumbnail_image' => media_url_guess($product->thumbnail),
                     'has_discount' => $discount > 0,
