@@ -127,7 +127,7 @@ class AuthController extends Controller
             $UserData = (array) $FullDataUser['user_info'];
             Log::info('national_id: ' . $UserData['id']);
             Log::info('national_id enc: ' . encrypt($UserData['id']));
-            $validation = NafathVerification::where('trans_id', $data['transId'])->first();
+            $validation = NafathVerification::where('trans_id', $data['transId'])->where('from_app',1)->first();
             Log::info('get validation: ' . $validation);
 
             if(isset($validation)){
@@ -543,6 +543,7 @@ class AuthController extends Controller
                 'random'         => $response['random'],
                 'status'         => "pending",
                 'nafath_response'=> json_encode($data['data'] ?? []),
+                'from_app'       => 1,
             ]);
 
             $data = [
