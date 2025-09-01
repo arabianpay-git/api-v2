@@ -484,7 +484,7 @@ class HomeController extends Controller
                 'thumbnail_image'  => media_url_guess($product->thumbnail),
                 'has_discount'     => $discount > 0,
                 'discount'         => $discount,
-                'unit'             => $product->unit,
+                'unit'             => $product->unit??"--",
                 'discount_type'    => $product->discount_type,
                 'stroked_price'    => $mainPrice,
                 'main_price'       => max($discountedPrice, 0),
