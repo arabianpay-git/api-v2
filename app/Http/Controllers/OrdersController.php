@@ -285,7 +285,7 @@ class OrdersController extends Controller
                         'id'              => $pid,
                         'name'            => (string) $name,
                         'description'     => (string) $desc,
-                        'thumbnail_image' => $thumb ? (str_starts_with($thumb, 'http') ? $thumb : url($thumb)) : url('/public/assets/img/placeholder.jpg'),
+                        'thumbnail_image' => media_url_guess($thumb),
                         'price' => [
                             'amount' => $fmt($uPrice),
                             'symbol' => $symbol,
@@ -455,7 +455,7 @@ class OrdersController extends Controller
                     'id'              => $pid,
                     'name'            => (string) $name,
                     'description'     => (string) $desc,
-                    'thumbnail_image' => $thumb ? (str_starts_with($thumb, 'http') ? $thumb : url($thumb)) : url('/public/assets/img/placeholder.jpg'),
+                    'thumbnail_image' => media_url_guess($thumb),
                     'price' => [
                         'amount' => $fmt($uPrice),
                         'symbol' => $symbol,

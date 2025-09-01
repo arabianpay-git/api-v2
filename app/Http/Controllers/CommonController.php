@@ -100,13 +100,22 @@ class CommonController extends Controller
     {
         $language = $request->input('lang');
         if (!in_array($language, ['en', 'ar'])) {
-            return $this->returnError('Invalid language code.');
+            return response()->json([
+                'status' => true,
+                'errNum' => 'S422',
+                'msg' => 'Invalid language code.',
+            ]);
         }
 
         // Assuming you have a way to set the language in the session or user profile
         session(['app_locale' => $language]);
 
-        return $this->returnData('','Language changed successfully.');
+        return response()->json([
+            'status' => true,
+            'errNum' => 'S200',
+            'msg' => 'Language changed successfully.',
+        ]);
+
     }
 
     public function adsStatistics(Request $request): JsonResponse
