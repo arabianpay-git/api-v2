@@ -44,7 +44,8 @@
         },
         "files": [
             "app/Helpers/SettingHelper.php",
-            "app/Helpers/Media.php"
+            "app/Helpers/Media.php",
+            "app/Helpers/EncryptionService.php"
         ]
     },
     "autoload-dev": {
