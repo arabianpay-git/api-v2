@@ -90,7 +90,7 @@ class ProductsController extends Controller
                 'id'               => $product->id,
                 'name'             => $product->name,
                 'brand'            => optional($product->brand)->name ?? 'Generic',
-                'thumbnail_image'  => $this->fullImageUrl($product->thumbnail),
+                'thumbnail_image'  => media_url_guess($product->thumbnail),
                 'has_discount'     => $product->discount > 0,
                 'discount'         => (float) $product->discount,
                 'discount_type'    => $product->discount_type,
@@ -286,7 +286,7 @@ class ProductsController extends Controller
                     return [
                         'id' => $category->id,
                         'name' => $category->name,
-                        'image' => $category->image ?'https://core.arabianpay.net'.$category->image:'https://api.arabianpay.net/public/placeholder.jpg',
+                        'image' => media_url_guess($category->image),
                         'parent_id' => $category->parent_id,
                         'children' => $this->mapChildren($category->childrenRecursive),
                     ];
@@ -303,7 +303,7 @@ class ProductsController extends Controller
                         'user_id' => $shop->user_id,
                         'name' => $shop->name,
                         'logo' => url($shop->logo),
-                        'cover' => $this->fullImageUrl($shop->banner),
+                        'cover' => media_url_guess($shop->banner),
                         'rating' => 0, // static or pull from review system
                     ];
                 });
@@ -330,7 +330,7 @@ class ProductsController extends Controller
             return [
                 'id' => $child->id,
                 'name' => $child->name,
-                'image' => $this->fullImageUrl($child->image),
+                'image' => media_url_guess($child->image),
                 'parent_id' => $child->parent_id,
                 'children' => $this->mapChildren($child->childrenRecursive),
             ];
