@@ -38,7 +38,7 @@ class AuthController extends Controller
         $encryptionService = new EncryptionService();
         $request->validate(['phone_number' => 'required|string']);
         
-        // فك التشفير
+        //Decrypt data 
         $phone55 = $encryptionService->decrypt($request->input('phone_number'));
         $phone = '966'.$encryptionService->decrypt($request->input('phone_number'));
         if ($phone === "555555555" || $phone === "0555555555" || $phone === "966555555555" || $request->input('phone_number') === "XOUnkyn8gZIuZBmjb0VYxA==") {
@@ -382,7 +382,7 @@ class AuthController extends Controller
         }
 
         // إنشاء أو تحديث OTP
-        $otpCode = rand(100000, 999999);
+        $otpCode = rand(1000, 9999);
 
         // Insert new OTP
         DB::table('otps')->insert([

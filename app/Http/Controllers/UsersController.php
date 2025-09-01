@@ -746,8 +746,10 @@ class UsersController extends Controller
 
     public function getKyc(Request $request)
     {
+       $user = Auth::user();
        $data = [
             'id' => 1000000000,
+            'name' => $user->first_name,
             'business_nature' => [
                 ['id' => 39, 'name' => 'الكماليات'],
                 ['id' => 31, 'name' => 'العصائر الطبيعية'],
