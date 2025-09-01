@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\EncryptionService;
 use App\Models\Address;
 use App\Models\AdsSlider;
 use App\Models\Brand;
@@ -98,7 +99,9 @@ class CommonController extends Controller
 
     public function changeLanguage(Request $request): JsonResponse
     {
-        $language = $request->input('lang');
+        $enc = new EncryptionService();
+        $language = $enc->decrypt($request->input('lang'));
+
         if (!in_array($language, ['en', 'ar'])) {
             return response()->json([
                 'status' => true,
