@@ -140,7 +140,7 @@ class ProductsController extends Controller
                 'id'              => $item->id,
                 'name'            => $item->name,
                 'brand'           => optional($item->brand)->name ?? 'Generic',
-                'thumbnail_image' => $this->fullImageUrl($item->thumbnail),
+                'thumbnail_image' => media_url_guess($item->thumbnail),
                 'has_discount'    => $hasDiscount,
                 'discount'        => (float) $discountAmount,
                 'discount_type'   => $item->discount_type ?? 'amount',
