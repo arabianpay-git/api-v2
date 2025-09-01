@@ -748,7 +748,7 @@ class UsersController extends Controller
     {
        $user = Auth::user();
        $data = [
-            'id' => $user->customer->id_number,
+            'id' => (int)$user->customer->id_number,
             'name' => $user->first_name,
             'business_nature' => [
                 ['id' => 39, 'name' => 'الكماليات'],
