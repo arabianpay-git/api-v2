@@ -63,6 +63,9 @@ if (!function_exists('media_url')) {
          */
         function media_url_guess(?string $value, ?string $fallback = null): string
         {
+            if(preg_match('#^https?://#i', $value)){
+                return $value;
+            }
             $hosts    = config('services.media_hosts', []);
             $fallback = $fallback ?? config('services.media_fallback', '/uploads/sliders/default_cover.png');
             $order    = array_filter(array_map('trim', explode(',', config('services.media_resolve_order', 'partners,core'))));
