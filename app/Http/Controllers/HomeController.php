@@ -383,7 +383,7 @@ class HomeController extends Controller
                     'brand' => $product->brand->name ?? 'عام',
                     'thumbnail_image' => media_url_guess($product->thumbnail),
                     'has_discount' => $discount > 0,
-                    'unit' => $product->unit,
+                    'unit' => $product->unit??'--',
                     'discount' => $discount,
                     'discount_type' => $product->discount_type,
                     'stroked_price' => $mainPrice,
