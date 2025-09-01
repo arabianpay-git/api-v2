@@ -33,7 +33,7 @@ class BrandsController extends Controller
             return [
                 'id' => $brand->id,
                 'name' => $brand->name,
-                'logo' => 'https://core.arabianpay.net'.$brand->logo,
+                'logo' => media_url_guess($brand->logo),
             ];
         });
 

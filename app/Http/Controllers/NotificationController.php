@@ -46,9 +46,9 @@ class NotificationController extends Controller
         if (!$notification) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
-                'msg' => 'Notification not found.'
-            ], 404);
+                'errNum' => 'E422',
+                'msg' => trans('api.notification_not_found')
+            ]);
         }
 
         $notification->update([
@@ -58,7 +58,7 @@ class NotificationController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Notification marked as read.'
+            'msg' => trans('api.notification_marked_as_read')
         ]);
     }
  }

@@ -41,9 +41,9 @@ class FollowController extends Controller
         if ($exists) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E409',
-                'msg' => 'Already following this shop.'
-            ], 409);
+                'errNum' => 'E422',
+                'msg' => trans('api.shop_already_followed')
+            ]);
         }
 
         DB::table('follow_sellers')->insert([
@@ -54,7 +54,7 @@ class FollowController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Shop followed successfully.'
+            'msg' => trans('api.shop_followed_successfully')
         ]);
     }
 
@@ -72,7 +72,7 @@ class FollowController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Shop unfollowed successfully.'
+            'msg' => trans('api.shop_unfollowed_successfully')
         ]);
     }
 

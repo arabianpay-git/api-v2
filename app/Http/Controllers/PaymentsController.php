@@ -58,10 +58,10 @@ class PaymentsController extends Controller
         if (isset($clickpayResponse['error']) && $clickpayResponse['error']) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E500',
+                'errNum' => 'E422',
                 'msg' => 'Payment initialization failed: ' . $clickpayResponse['message'],
                 'details' => $clickpayResponse['details'],
-            ], 500);
+            ]);
         }
 
         $referenceId = $clickpayResponse['tran_ref'] ?? null;
@@ -69,10 +69,10 @@ class PaymentsController extends Controller
         if (!$referenceId) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E500',
-                'msg' => 'Payment initialization failed: missing transaction reference.',
+                'errNum' => 'E422',
+                'msg' => trans('api.payment_initialization_failed_missing_transaction_reference'),
                 'details' => $clickpayResponse,
-            ], 500);
+            ]);
         }
 
         $transactionRef = Str::uuid()->toString();
@@ -94,7 +94,7 @@ class PaymentsController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Payment created successfully.',
+            'msg' => trans('api.payment_initialized_successfully'),
             'payment_url' => $clickpayResponse['redirect_url'],
         ]);
     }

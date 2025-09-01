@@ -60,7 +60,7 @@ class ReviewController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Review added successfully.'
+            'msg' => trans('api.review_submitted_successfully')
         ]);
     }
 

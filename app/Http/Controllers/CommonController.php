@@ -106,7 +106,7 @@ class CommonController extends Controller
             return response()->json([
                 'status' => true,
                 'errNum' => 'S422',
-                'msg' => 'Invalid language code.',
+                'msg' => trans('api.invalid_language_code'),
             ]);
         }
 
@@ -116,7 +116,7 @@ class CommonController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Language changed successfully.',
+            'msg' => trans('api.language_changed_successfully'),
         ]);
 
     }
@@ -134,6 +134,6 @@ class CommonController extends Controller
         $statistics = DB::table('ads_slider')
         ->where('id',$request->image_id)->first();
 
-        return $this->returnData($statistics, 'Ads statistics retrieved successfully.');
+        return $this->returnData($statistics, trans('api.ads_statistics_retrieved_successfully'));
     }
 }

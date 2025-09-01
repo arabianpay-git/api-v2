@@ -37,7 +37,7 @@ class OrdersController extends Controller
             return response()->json([
                 'status' => false,
                 'errNum' => 'E400',
-                'msg' => 'Cart is empty or not found.',
+                'msg' => trans('api.cart_is_empty'),
             ], 400);
         }
 
@@ -156,9 +156,9 @@ class OrdersController extends Controller
             DB::rollBack();
             return response()->json([
                 'status' => false,
-                'errNum' => 'E500',
-                'msg' => 'Order placement failed: ' . $e->getMessage(),
-            ], 500);
+                'errNum' => 'E422',
+                'msg' => trans('api.order_placement_failed'),
+            ]);
         }
     }
 
@@ -218,9 +218,9 @@ class OrdersController extends Controller
         if ($orders->isEmpty()) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
-                'msg'    => 'Pending orders not found.',
-            ], 404);
+                'errNum' => 'E422',
+                'msg'    => trans('api.order_not_found'),
+            ]);
         }
 
         // تنسيق مبالغ مثل "4,345.00"
@@ -345,9 +345,9 @@ class OrdersController extends Controller
         if (!$order) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
-                'msg' => 'Pending order not found.',
-            ], 404);
+                'errNum' => 'E422',
+                'msg' => trans('api.order_not_found'),
+            ]);
         }
 
         $order->delete();
@@ -355,7 +355,7 @@ class OrdersController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Pending order removed successfully.'
+            'msg' => trans('api.pending_order_removed_successfully'),
         ]);
     }
 
@@ -418,9 +418,9 @@ class OrdersController extends Controller
         if (!$order) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
-                'msg'    => 'Order not found.',
-            ], 404);
+                'errNum' => 'E422',
+                'msg'    => trans('api.order_not_found'),
+            ]);
         }
 
         $symbol = 'SR';
@@ -540,17 +540,17 @@ class OrdersController extends Controller
         if (!$order) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
-                'msg' => 'Order not found.',
-            ], 404);
+                'errNum' => 'E422',
+                'msg' => trans('api.order_not_found'),
+            ]);
         }
 
         if ($order->delivery_status !== 'pending') {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E400',
-                'msg' => 'Only pending orders can be cancelled.',
-            ], 400);
+                'errNum' => 'E422',
+                'msg' =>trans('api.order_cannot_be_cancelled'),
+            ]);
         }
 
         $order->general_status = 'cancelled';
@@ -559,7 +559,7 @@ class OrdersController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Order cancelled successfully.'
+            'msg' => trans('api.order_cancelled_successfully'),
         ]);
     }
 
@@ -627,9 +627,9 @@ class OrdersController extends Controller
                 if (!$order) {
                     return response()->json([
                         'status' => false,
-                        'errNum' => 'E404',
-                        'msg'    => 'Order not found.',
-                    ], 404);
+                        'errNum' => 'E422',
+                        'msg'    => trans('api.order_not_found'),
+                    ]);
                 }
             
 
@@ -672,9 +672,9 @@ class OrdersController extends Controller
         
         return response()->json([
             'status' => false,
-            'errNum' => 'E404',
-            'msg'    => 'Order not found.',
-        ], 404);
+            'errNum' => 'E422',
+            'msg'    => trans('api.order_not_found'),
+        ]);
         
     }
 

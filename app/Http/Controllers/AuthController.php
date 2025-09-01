@@ -270,7 +270,7 @@ class AuthController extends Controller
                 return response()->json([
                     'status' => false,
                     'errNum' => 'E422',
-                    'msg' => 'Dummy user not found in database.',
+                    'msg' => trans('api.user_not_found'),
                 ]);
             }
             //$user->tokens()->delete(); 
@@ -376,8 +376,8 @@ class AuthController extends Controller
             ->exists()) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E409',
-                'msg' => 'User with this phone number already exists.',
+                'errNum' => 'E422',
+                'msg' => trans('api.user_exists'),
             ], 409);
         }
 
@@ -407,7 +407,7 @@ class AuthController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'OTP sent successfully. Complete registration after verification.',
+            'msg' => trans('api.otp_sent'),
         ]);
     }
     
@@ -442,7 +442,7 @@ class AuthController extends Controller
                 return response()->json([
                     'status' => false,
                     'errNum' => 'E422',
-                    'msg' => 'Dummy user not found in database.',
+                    'msg' => trans('api.user_not_found'),
                 ]);
             }
 
@@ -528,17 +528,17 @@ class AuthController extends Controller
             if (isset($response['status']) && str_starts_with($response['status'], '400-')) {
                 return response()->json([
                     'status' => false,
-                    'errNum' => 'E400',
-                    'msg' => $response['message'] ?? 'Nafath Error',
-                ], 400);
+                    'errNum' => 'E422',
+                    'msg' => $response['message'] ?? trans('api.nafath_error_generic'),
+                ]);
             }
 
             if (!isset($response['transId'], $response['random'])) {
                 return response()->json([
                     'status' => false,
                     'errNum' => 'E422',
-                    'msg' => 'Cannot start session, invalid Nafath response.',
-                ], 422);
+                    'msg' => trans('api.nafath_error_generic'),
+                ]);
             }
 
             // إذا لم يكن هناك سجل موجود، نقوم بإنشاء سجل جديد
@@ -569,9 +569,9 @@ class AuthController extends Controller
         }else{
             return response()->json([
                 'status' => false,
-                'errNum' => 'E429',
-                'msg' => 'Too many requests, please try again later.',
-            ], 429);
+                'errNum' => 'E422',
+                'msg' => trans('api.nafath_max_attempts'),
+            ]);
         }
     }
 
@@ -617,7 +617,7 @@ class AuthController extends Controller
                 return response()->json([
                     'status' => false,
                     'errNum' => 'E422',
-                    'msg' => 'No data found for the provided ID number.',
+                    'msg' => trans('api.no_data_found_for_id_number'),
                 ]);
             }
 
@@ -625,7 +625,7 @@ class AuthController extends Controller
                 'id_number' => $encryptionService->db_encrypt($idNumber),
                 'phone' => $phone,
                 'nafath_data' => $data,
-            ], 'Nafath verification completed successfully.');
+            ], trans('api.nafath_data_retrieved'));
           
         } catch (\Exception $e) {
             Log::error('Error processing Nafath: ' . $e->getMessage());
@@ -644,9 +644,9 @@ class AuthController extends Controller
 
             return response()->json([
                 'status' => false,
-                'errNum' => 'E500',
-                'msg' => 'Failed to process Nafath verification.',
-            ], 500);
+                'errNum' => 'E422',
+                'msg' => trans('api.nafath_error_generic'),
+            ]);
         }
     }
 
@@ -698,7 +698,7 @@ class AuthController extends Controller
             return response()->json([
                 'status' => false,
                 'errNum' => 'E422',
-                'msg' => 'Validation error.',
+                'msg' => trans('api.validation_error'),
                 'errors' => $e->errors(),
             ], 422);
         }
@@ -768,23 +768,23 @@ class AuthController extends Controller
 
                             return response()->json([
                                 'status' => false,
-                                'errNum' => 'E500',
-                                'msg' => 'An error occurred during registration.',
-                            ], 500);
+                                'errNum' => 'E422',
+                                'msg' => trans('api.registration_failed'),
+                            ]);
                         }
             }
                 return response()->json([
                 'status' => false,
-                'errNum' => 'E500',
-                'msg' => 'The Nafath response is empty.',
-            ], 500);
+                'errNum' => 'E422',
+                'msg' => trans('api.nafath_no_response'),
+            ]);
         }
 
         return response()->json([
             'status' => false,
-            'errNum' => 'E500',
-            'msg' => 'The Nafath verification is not completed',
-        ], 500);
+            'errNum' => 'E422',
+            'msg' => trans('api.nafath_not_approved'),
+        ]);
         
     }
 
@@ -797,7 +797,7 @@ class AuthController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Logout successfully.',
+            'msg' => trans('api.logged_out'),
         ]);
     }
 
@@ -815,7 +815,7 @@ class AuthController extends Controller
             return response()->json([
                 'status' => false,
                 'errNum' => 'E422',
-                'msg' => 'Identity number missing from response.',
+                'msg' => trans('api.invalid_nafath_response'),
             ], 422);
         }
 
@@ -836,7 +836,7 @@ class AuthController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'User verified successfully via Nafath.',
+            'msg' => trans('api.nafath_simulation_success'),
             'token' => $token,
             'user' => [
                 'id' => $user->id,

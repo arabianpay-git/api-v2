@@ -83,9 +83,9 @@ class AddressesController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E500',
-                'msg'    => 'Failed to create address: ' . $e->getMessage(),
-            ], 500);
+                'errNum' => 'E422',
+                'msg'    => trans('api.failed_create_address'),
+            ]);
         }
     }
 
@@ -107,7 +107,7 @@ class AddressesController extends Controller
             return response()->json([
                 'status' => false,
                 'errNum' => 'E422',
-                'msg'    => 'Address not found or unauthorized.'
+                'msg'    => trans('api.address_not_found_or_unauthorized')
             ]);
         }
 
@@ -126,9 +126,9 @@ class AddressesController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E500',
-                'msg'    => 'Failed to update address: ' . $e->getMessage(),
-            ], 500);
+                'errNum' => 'E422',
+                'msg'    => trans('api.failed_update_address'),
+            ]);
         }
     }
 
@@ -151,7 +151,7 @@ class AddressesController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Default address updated successfully.'
+            'msg' => trans('api.address_created_successfully')
         ]);
     }
 
@@ -170,7 +170,7 @@ class AddressesController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Address removed successfully.'
+            'msg' => trans('api.address_removed_successfully')
         ]);
     }
 

@@ -76,7 +76,7 @@ $terms = '<p><b>شروط وأحكام المستخدم&nbsp;<br>
 
 
                            $data = ['title'=>'شروط وأحكام المستخدم','content' => $terms];
-        return $this->returnData($data, 'Terms and conditions retrieved successfully.');
+        return $this->returnData($data, trans('api.terms_conditions_retrieved_successfully'));
     }
 
     public function getReplacementPolicy(): JsonResponse
@@ -97,7 +97,7 @@ $terms = '<p><b>شروط وأحكام المستخدم&nbsp;<br>
 
 </div>'; // Replace with actual data retrieval logic
 
-        return $this->returnData(['title'=>'replacement policy','content' => $policy], 'Replacement policy retrieved successfully.');
+        return $this->returnData(['title'=>'replacement policy','content' => $policy], trans('api.replacement_policy_retrieved_successfully'));
     }
 
 }

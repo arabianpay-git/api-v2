@@ -504,7 +504,7 @@ class UsersController extends Controller
             ->get(['id','type','scheme','number','token','is_default']);
 
         if ($cards->isEmpty()) {
-            return response()->json(['status'=>false,'errNum'=>'E422','msg'=>'No cards found for this user.']);
+            return response()->json(['status'=>false,'errNum'=>'E422','msg'=>trans('api.no_cards_found')]);
         }
 
         $data = $cards->map(function ($c) {
@@ -569,7 +569,7 @@ class UsersController extends Controller
             'collected','retrieved','canceled','subscription_fees'
         ]);
         if (!$tx || $tx->user_id != $request->user()->id) {
-            return response()->json(['status'=>false,'errNum'=>'E422','msg'=>'Transaction not found.']);
+            return response()->json(['status'=>false,'errNum'=>'E422','msg'=>trans('api.transaction_not_found')]);
         }
 
         // 2) الأقساط المرتبطة بهذه المعاملة (transaction_id = uuid)
@@ -582,7 +582,7 @@ class UsersController extends Controller
             ]);
 
         if ($payments->isEmpty()) {
-            return response()->json(['status'=>false,'errNum'=>'E422','msg'=>'Payments not found.']);
+            return response()->json(['status'=>false,'errNum'=>'E422','msg'=>trans('api.no_payments_found')]);
         }
 
         // 3) الطلب المرتبط (لو transaction.order_id فارغ خذ أول order_id من الأقساط)
@@ -593,7 +593,7 @@ class UsersController extends Controller
             'delivery_status','payment_type','created_at','seller_id'
         ]);
         if (!$order) {
-            return response()->json(['status'=>false,'errNum'=>'E422','msg'=>'Order not found.']);
+            return response()->json(['status'=>false,'errNum'=>'E422','msg'=>trans('api.order_not_found')]);
         }
 
         // اسم المتجر (لو عندك علاقات shop على البائع، فعّل with في الاستعلام السابق واستخدمها)
@@ -730,7 +730,7 @@ class UsersController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Email updated successfully.',
+            'msg' => trans('api.profile_updated_successfully'),
         ]);
     }
 

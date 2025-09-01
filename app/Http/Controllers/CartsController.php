@@ -89,7 +89,7 @@ class CartsController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Cart updated successfully.'
+            'msg' => trans('api.cart_updated_successfully'),
         ]);
     }
 
@@ -184,10 +184,10 @@ class CartsController extends Controller
             if (!$user) {
                 return response()->json([
                     'status' => false,
-                    'errNum' => 'E401',
-                    'msg' => 'Unauthenticated.',
+                    'errNum' => 'E422',
+                    'msg' => trans('api.unauthenticated'),
                     'data' => (object)[]
-                ], 401);
+                ]);
             }
 
             // Get the latest cart for the user
@@ -254,7 +254,7 @@ class CartsController extends Controller
             return response()->json([
                 'status' => true,
                 'errNum' => 'S200',
-                'msg' => 'Cart is empty.',
+                'msg' => trans('api.cart_is_empty'),
                 'data' => [],
             ]);
         }
@@ -269,7 +269,7 @@ class CartsController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Cart details retrieved successfully.',
+            'msg' => trans('api.cart_details_retrieved_successfully'),
             'data' => [
                 'sub_total' => $subTotal,
                 'tax' => $tax,
@@ -294,9 +294,9 @@ class CartsController extends Controller
         if (!$cart || $cart->items->isEmpty()) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
-                'msg' => 'Cart is empty.',
-            ], 404);
+                'errNum' => 'E422',
+                'msg' => trans('api.cart_is_empty'),
+            ]);
         }
 
         // Coupon logic (optional)
@@ -323,7 +323,7 @@ class CartsController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Checkout updated successfully.',
+            'msg' => trans('api.cart_updated_successfully'),
             'data' => [
                 'sub_total' => $subTotal,
                 'tax' => $tax,
@@ -343,7 +343,7 @@ class CartsController extends Controller
             return response()->json([
                 'status' => true,
                 'errNum' => 'S200',
-                'msg' => 'Cart is empty.',
+                'msg' => trans('api.cart_is_empty'),
                 'data' => [],
             ]);
         }
@@ -359,7 +359,7 @@ class CartsController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Checkout details retrieved successfully.',
+            'msg' => trans('api.cart_details_retrieved_successfully'),
             'data' => [
                 'address' => $address ? [
                     'id' => $address->id,
@@ -400,7 +400,7 @@ class CartsController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'OTP sent successfully.'
+            'msg' => trans('api.otp_sent'),
         ]);
     }
 
@@ -422,9 +422,9 @@ class CartsController extends Controller
         if (!$otp) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E401',
-                'msg' => 'Invalid or expired OTP.'
-            ], 401);
+                'errNum' => 'E422',
+                'msg' => trans('api.otp_invalid')
+            ]);
         }
 
         $otp->used = 1;
@@ -433,7 +433,7 @@ class CartsController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'OTP confirmed successfully.'
+            'msg' => trans('api.otp_verified')
         ]);
     }
 
@@ -456,9 +456,9 @@ class CartsController extends Controller
         if (!$cart || $cart->items->isEmpty()) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
-                'msg' => 'Cart is empty.',
-            ], 404);
+                'errNum' => 'E422',
+                'msg' => trans('api.cart_is_empty'),
+            ]);
         }
 
         $address = Address::findOrFail($addressID);
@@ -663,7 +663,7 @@ class CartsController extends Controller
         $cart->items()->delete();
         $cart->delete();
 
-        return $this->returnData($data,"Order placed successfully.");
+        return $this->returnData($data,trans('api.order_placed_successfully'));
 
     }
 
@@ -682,9 +682,9 @@ class CartsController extends Controller
         if (!$order) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
-                'msg' => 'Order not found.',
-            ], 404);
+                'errNum' => 'E422',
+                'msg' => trans('api.order_not_found'),
+            ]);
         }
 
         // Example: Generate a Sanad Nafith UUID (you can later store it in your DB)
@@ -697,7 +697,7 @@ class CartsController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Sanad Nafith created successfully.',
+            'msg' => trans('api.sanad_created_successfully'),
             'data' => [
                 'order_id' => $order->id,
                 'sanad_number' => $sanadNumber,

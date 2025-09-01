@@ -46,7 +46,7 @@ class WishlistController extends Controller
             return response()->json([
                 'status' => false,
                 'errNum' => 'E409',
-                'msg' => 'Product already in wishlist.'
+                'msg' => trans('api.product_already_in_wishlist')
             ], 409);
         }
 
@@ -58,7 +58,7 @@ class WishlistController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Product added to wishlist.'
+            'msg' => trans('api.product_added_to_wishlist')
         ]);
     }
 
@@ -75,7 +75,7 @@ class WishlistController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Product removed from wishlist.'
+            'msg' => trans('api.product_removed_from_wishlist')
         ]);
     }
 

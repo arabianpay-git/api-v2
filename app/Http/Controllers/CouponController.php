@@ -26,7 +26,7 @@ class CouponController extends Controller
         $coupons = Coupon::where('user_id', $request->user()->id)
         ->orWhereNull('user_id') // or global coupons
         ->get();
-        return $this->returnData($coupons, 'Coupons listed successfully.');
+        return $this->returnData($coupons, trans('api.coupons_listed_successfully'));
     }
 
     public function apply(Request $request)
@@ -40,16 +40,16 @@ class CouponController extends Controller
         if (!$coupon) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
-                'msg' => 'Invalid coupon code.'
-            ], 404);
+                'errNum' => 'E422',
+                'msg' => trans('api.invalid_coupon'),
+            ]);
         }
 
         // You can store applied coupon in session, db, etc.
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Coupon applied successfully.',
+            'msg' => trans('api.coupon_applied_successfully'),
             'discount' => $coupon->discount ?? 0,
         ]);
     }
@@ -60,7 +60,7 @@ class CouponController extends Controller
         return response()->json([
             'status' => true,
             'errNum' => 'S200',
-            'msg' => 'Coupon removed successfully.'
+            'msg' => trans('api.coupon_removed_successfully')
         ]);
     }
 
@@ -75,9 +75,9 @@ class CouponController extends Controller
         if (!$coupon) {
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
-                'msg' => 'Coupon not found.'
-            ], 404);
+                'errNum' => 'E422',
+                'msg' => trans('api.invalid_coupon'),
+            ]);
         }
 
         return response()->json([
