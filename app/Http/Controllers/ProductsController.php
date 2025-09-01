@@ -219,14 +219,14 @@ class ProductsController extends Controller
             "seller_id" => $product->user_id,
             "shop_id" => $shop->id ?? 0,
             "shop_name" => $shop->name ?? '',
-            "shop_logo" => $this->fullImageUrl($shop->logo??''),
+            "shop_logo" => media_url_guess($shop->logo??''),
             "photos" => collect(
                 json_decode($product->photos, true) ?: [$product->thumbnail]
             )->map(fn($photo) => [
                 "variant" => "",
-                "path" => $this->fullImageUrl($photo)
+                "path" => media_url_guess($photo)
             ]),
-            "thumbnail_image" => $this->fullImageUrl($product->thumbnail),
+            "thumbnail_image" => media_url_guess($product->thumbnail),
             "tags" => [],
             "choice_options" => [], // إذا كان عندك خيارات، املأها
             "colors" => [], // إذا كان عندك ألوان، املأها
@@ -246,7 +246,7 @@ class ProductsController extends Controller
             "brand" => $brand ? [
                 "id" => $brand->id,
                 "name" => $brand->name,
-                "logo" => $this->fullImageUrl($brand->logo)
+                "logo" => media_url_guess($brand->logo)
             ] : null,
             "is_wholesale" => false,
             "wholesale" => [],
