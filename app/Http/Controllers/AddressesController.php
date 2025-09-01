@@ -104,7 +104,11 @@ class AddressesController extends Controller
 
         $address = Address::find($address_id);
         if (!$address || $address->user_id !== Auth::id()) {
-            return response()->json(['error' => 'Address not found or unauthorized'], 404);
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E422',
+                'msg'    => 'Address not found or unauthorized.'
+            ]);
         }
 
         try {

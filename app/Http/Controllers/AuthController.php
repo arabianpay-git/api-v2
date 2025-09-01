@@ -53,9 +53,9 @@ class AuthController extends Controller
         if(!$user){
             return response()->json([
                 'status' => false,
-                'errNum' => 'E404',
+                'errNum' => 'E422',
                 'msg' => __('api.user_not_found'),
-            ], 404);
+            ]);
         }
         // Generate 6-digit OTP
         $otpCode = rand(1000, 9999);
@@ -325,7 +325,11 @@ class AuthController extends Controller
             ->orWhere('phone_number', $encryptionService->db_encrypt($phoneNorm))
             ->first();
         if (! $user) {
-            return $this->returnError('User not found.', 'E404');
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E422',
+                'msg' => __('api.user_not_found'),
+            ]);
         }
 
         $user->notification_token = $notificationToken;
@@ -437,9 +441,9 @@ class AuthController extends Controller
             if (! $user) {
                 return response()->json([
                     'status' => false,
-                    'errNum' => 'E404',
+                    'errNum' => 'E422',
                     'msg' => 'Dummy user not found in database.',
-                ], 404);
+                ]);
             }
 
             Auth::login($user);
@@ -478,7 +482,11 @@ class AuthController extends Controller
             ->orWhere('phone_number', $encryptionService->db_encrypt($phoneNorm))
             ->first();
         if (! $user) {
-            return $this->returnError('User not found.', 'E404');
+            return response()->json([
+                'status' => false,
+                'errNum' => 'E422',
+                'msg' => __('api.user_not_found'),
+            ]);
         }
 
         $user->notification_token = $notificationToken;
@@ -608,9 +616,9 @@ class AuthController extends Controller
             if (!$data) {
                 return response()->json([
                     'status' => false,
-                    'errNum' => 'E404',
+                    'errNum' => 'E422',
                     'msg' => 'No data found for the provided ID number.',
-                ], 404);
+                ]);
             }
 
             return $this->returnData([
