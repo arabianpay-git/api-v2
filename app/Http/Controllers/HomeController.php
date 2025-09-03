@@ -16,6 +16,7 @@ use App\Models\ShopSetting;
 use App\Models\Slider;
 use App\Models\User;
 use App\Models\User2;
+use App\Models\UserCardToken;
 use Auth;
 use Carbon\Carbon;
 use DB;
@@ -31,6 +32,8 @@ class HomeController extends Controller
      * @param mixed $date
      * @return string|null
      */
+
+    public function __construct(private ClickpayService $cp) {}
     private function parseDate($value)
     {
         try {
@@ -40,17 +43,58 @@ class HomeController extends Controller
         }
     }
 
-    public function test() {
-        $data = [
-                    "verification"  => 'success',  // rejected
-                    "phone_number"  => "966566684981",
-                    "date"          => date('d-m-Y H:i:s', strtotime(now())) ,
-                ];
 
-        $id = "2590153728";
-        broadcast(new \App\Events\NafathEvent($data,$id));
+
+    public function test() {
+        // $data = [
+        //             "verification"  => 'success',  // rejected
+        //             "phone_number"  => "966566684981",
+        //             "date"          => date('d-m-Y H:i:s', strtotime(now())) ,
+        //         ];
+
+        // $id = "2590153728";
+        // broadcast(new \App\Events\NafathEvent($data,$id));
         //$validation = NafathVerification::where('national_id', 2417807558)->first();
         //return $validation;
+
+        
+    }
+
+    public function chargeWithToken(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|int',
+            'amount'  => 'required|numeric|min:0.5',
+        ]);
+
+        $card = UserCardToken::where('user_id', 374)->latest()->first();
+        if (!$card) {
+            return response()->json(['ok' => false, 'error' => 'No saved token'], 422);
+        }
+
+        $payload = [
+            'tran_type'        => 'sale',
+            'tran_class'       => 'recurring',
+            'cart_id'          => 'rb_'.uniqid(),
+            'cart_currency'    => 'SAR',
+            'cart_amount'      => 0.10,
+            'cart_description' => 'Unscheduled recurring charge',
+            'token'            => "394155BC67A3E537C5BE90FB678079BE",
+            'tran_ref'         => $card->tran_ref, // من عملية CIT
+            'callback'         => route('clickpay.ipn'),
+            'return'           => route('clickpay.return'),
+            'token_info'       => [
+                'tokenise'   => '2',
+                'token_type' => 'unscheduled',
+            ],
+        ];
+
+        $res = $this->cp->paymentRequest($payload);
+
+        return response()->json([
+            'ok'       => $res->successful(),
+            'response' => $res->json(),
+        ], $res->status());
     }
 
     public function upload()
@@ -311,15 +355,8 @@ class HomeController extends Controller
         ->select('id', 'name', 'icon as image', 'parent_id')
         ->get()
         ->map(function ($category) {
-          if(!empty($category->image)){
-            if (Str::startsWith($category->image, '/storage')) {
-              $img = media_url_guess($category->image);
-            }else{
-              $img = media_url_guess($category->image);
-            }
-          }else{
-            $img = $img = media_url_guess($category->image);
-          }
+          $img = media_url_guess($category->image);
+        
 
           
             return [
