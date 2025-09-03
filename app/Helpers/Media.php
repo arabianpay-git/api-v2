@@ -72,7 +72,7 @@ if (!function_exists('media_url')) {
                 $cfg = [
                     'hosts'   => $hosts,
                     'resolve' => (bool) config('services.media_resolve_enabled', true),
-                    'order'   => array_values(array_filter(array_map('trim', explode(',', config('services.media_resolve_order', 'partners,core'))))),
+                    'order'   => array_values(array_filter(array_map('trim', explode(',', config('services.media_resolve_order', 'core,partners'))))),
                     'fallback'=> $fallback ?? config('services.media_fallback', '/uploads/sliders/default_cover.png'),
                     'baseApp' => url('/'),
                 ];
