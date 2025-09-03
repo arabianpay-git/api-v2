@@ -182,9 +182,9 @@ class UsersController extends Controller
         // اجلب مدفوعات المستخدم
         $rows = SchedulePayment::query()
             ->where('user_id', $userId)
-            ->whereNotNull('transaction_id')  // لضمان التجميع
+            ->whereNotNull('order_id')  // لضمان التجميع
             ->where('payment_status', '!=', 'paid') // استبعاد المدفوعات المدفوعة
-            ->orderBy('transaction_id')
+            ->orderBy('order_id')
             ->orderBy('instalment_number')
             ->get([
                 'uuid',
