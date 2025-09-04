@@ -541,7 +541,8 @@ class CartsController extends Controller
             $instalmentPlan = InstalmentPlan::where('status', 'active')->first();
             $installmentsCount = (int) $instalmentPlan->installments;
             $intervalDays = (int) $instalmentPlan->patch_days;
-            $lateFee = (float) $instalmentPlan->late_fee;
+            //$lateFee = (float) $instalmentPlan->late_fee;
+            $lateFee = 0;
             $transactionFee = (float) $instalmentPlan->transaction_fee;
             $amountPerInstallment = round($grandTotal / $installmentsCount, 2);
 
