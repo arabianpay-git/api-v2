@@ -57,8 +57,8 @@ class AddressesController extends Controller
         try {
             $address = Address::create([
                 'user_id'    => auth()->id(),
-                'longitude'  => $request->longitude,
-                'latitude'   => $request->latitude,
+                'longitude'  => bcadd($request->longitude, '0', 15),
+                'latitude'   => bcadd($request->latitude, '0', 15),
                 'name'       => $request->name,
                 'address'    => $request->address,
                 'country_id' => $request->country_id,
