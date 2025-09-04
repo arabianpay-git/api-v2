@@ -76,7 +76,7 @@ class UsersController extends Controller
                 "name_shop"      => $tx->seller->shop->name ?? '--',
                 "schedule_payments" => $payments->map(function ($sp, $i) use ($currentIndex) {
                     return [
-                        "payment_id"          => $sp->transaction_id,
+                        "payment_id"          => $sp->id,
                         "reference_id"        => $sp->id,
                         "name_shop"           => "freedooo",
                         "installment_number"  => $sp->installment_number,
@@ -266,7 +266,7 @@ class UsersController extends Controller
  
 
                         return [
-                            "payment_id" => $sp->transaction_id,
+                            "payment_id" => $sp->id,
                             "reference_id" => $sp->id,
                             "name_shop" => "omar",
                             "installment_number" => (int)$sp->instalment_number,
