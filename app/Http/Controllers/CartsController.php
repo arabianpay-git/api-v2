@@ -452,6 +452,7 @@ class CartsController extends Controller
 
         $user = auth()->user();
         $cart = Cart::with('items.product')->where('user_id', $user->id)->first();
+        dd($cart);
         //dd($cart->items);
         if (!$cart || $cart->items->isEmpty()) {
             return response()->json([

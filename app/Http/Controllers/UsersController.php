@@ -266,7 +266,7 @@ class UsersController extends Controller
  
 
                         return [
-                            "payment_id" => $sp->id,
+                            "payment_id" => $sp->transaction_id,
                             "reference_id" => $sp->id,
                             "name_shop" => "omar",
                             "installment_number" => (int)$sp->instalment_number,
@@ -657,7 +657,7 @@ class UsersController extends Controller
             })();
 
             return [
-                'payment_id'         => (int) $p->id,
+                'payment_id'         => (string) $p->uuid,
                 'reference_id'       => (int) $p->id, // أرقام مثل العينة (10/11/12). بدّلها لو تبي مرجع آخر.
                 'name_shop'          => 'omar',
                 'installment_number' => (int) $p->instalment_number,
