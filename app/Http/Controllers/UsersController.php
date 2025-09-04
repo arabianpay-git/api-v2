@@ -76,7 +76,7 @@ class UsersController extends Controller
                 "name_shop"      => $tx->seller->shop->name ?? '--',
                 "schedule_payments" => $payments->map(function ($sp, $i) use ($currentIndex) {
                     return [
-                        "payment_id"          => $sp->id,
+                        "payment_id"          => $sp->transaction_id,
                         "reference_id"        => $sp->id,
                         "name_shop"           => "freedooo",
                         "installment_number"  => $sp->installment_number,
@@ -199,7 +199,7 @@ class UsersController extends Controller
             ]);
 
         if ($rows->isEmpty()) {
-            return $this->returnData([], 'No payments found 2');
+            return $this->returnData([], 'No payments found');
         }
 
         // جهّز أسماء المتاجر لكل reference_id (transaction_id في schedule_payments)
@@ -266,7 +266,7 @@ class UsersController extends Controller
  
 
                         return [
-                            "payment_id" => $sp->id,
+                            "payment_id" => $sp->transaction_id,
                             "reference_id" => $sp->id,
                             "name_shop" => "omar",
                             "installment_number" => (int)$sp->instalment_number,
