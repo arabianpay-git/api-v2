@@ -53,17 +53,7 @@ class AddressesController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'longitude'  => 'required|numeric',
-            'latitude'   => 'required|numeric',
-            'name'       => 'required|string|max:255',
-            'address'    => 'required|string|max:500',
-            'country_id' => 'required|integer|exists:countries,id',
-            'state_id'   => 'required|integer|exists:states,id',
-            'city_id'    => 'required|integer|exists:cities,id',
-            'phone'      => 'required|string|regex:/^\d{7,15}$/',
-        ]);
-
+    
         try {
             $address = Address::create([
                 'user_id'    => auth()->id(),
