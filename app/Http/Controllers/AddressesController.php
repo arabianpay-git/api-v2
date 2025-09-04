@@ -74,7 +74,7 @@ class AddressesController extends Controller
             return response()->json([
                 'status' => false,
                 'errNum' => 'E422',
-                'msg'    => trans('api.failed_create_address').$e->getMessage(),
+                'msg'    => trans('api.failed_create_address')."Long: ".$request->longitude." | ".$e->getMessage(),
             ]);
         }
     }
