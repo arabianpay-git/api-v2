@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\EncryptionService;
 use App\Models\Address;
 use App\Models\AdsSlider;
 use App\Models\Brand;
@@ -53,18 +54,18 @@ class AddressesController extends Controller
 
     public function store(Request $request)
     {
-        dd($request);
+        $encryptionService = new EncryptionService();
         try {
             $address = Address::create([
                 'user_id'    => auth()->id(),
-                'longitude'  => bcadd($request->longitude, '0', 15),
-                'latitude'   => bcadd($request->latitude, '0', 15),
-                'name'       => $request->name,
-                'address'    => $request->address,
-                'country_id' => $request->country_id,
-                'state_id'   => $request->state_id,
-                'city_id'    => $request->city_id,
-                'phone'      => $request->phone,
+                'longitude'  => $encryptionService->decrypt($request->longitude),
+                'latitude'   => $encryptionService->decrypt($request->latitude),
+                'name'       => $encryptionService->decrypt($request->name),
+                'address'    => $encryptionService->decrypt($request->address),
+                'country_id' => $encryptionService->decrypt($request->country_id),
+                'state_id'   => $encryptionService->decrypt($request->state_id),
+                'city_id'    => $encryptionService->decrypt($request->city_id),
+                'phone'      => $encryptionService->decrypt($request->phone),
                 'set_default'=> false,
             ]);
             return $this->returnData($address, 'Address created successfully.');
