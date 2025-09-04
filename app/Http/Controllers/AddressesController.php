@@ -68,7 +68,31 @@ class AddressesController extends Controller
                 'phone'      => $encryptionService->decrypt($request->phone),
                 'set_default'=> false,
             ]);
-            return $this->returnData($address, 'Address created successfully.');
+
+            $address->load([
+                'country:id,name',
+                'state:id,name',
+                'city:id,name',
+            ]);
+
+            $payload = [
+                'id'           => (int) $address->id,
+                'address'      => (string) $address->address,
+                'name'         => (string) $address->name,
+                'country_id'   => (int) $address->country_id,
+                'state_id'     => (int) $address->state_id,
+                'city_id'      => (int) $address->city_id,
+                'country_name' => $address->country->name ?? '',
+                'state_name'   => $address->state->name ?? '',
+                'city_name'    => $address->city->name ?? '',
+                'phone'        => (string) $address->phone,
+                'latitude'     => (string) $address->latitude,
+                'longitude'    => (string) $address->longitude,
+                'is_default'   => (bool) $address->set_default,
+            ];
+
+
+            return $this->returnData($payload, 'Address created successfully.');
            
 
         } catch (\Exception $e) {
