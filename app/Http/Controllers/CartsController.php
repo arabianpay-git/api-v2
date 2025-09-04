@@ -38,6 +38,7 @@ class CartsController extends Controller
 
         $user = auth()->user();
         $cart = Cart::firstOrCreate(['user_id' => $user->id]);
+        $replace = $request->boolean('from_cart', true);
         //dd($data);
         foreach ($data as $item) {
             
@@ -68,20 +69,22 @@ class CartsController extends Controller
                 ->first();
 
             if ($cartItem) {
-                $cartItem->quantity += $item['quantity'];
+                $cartItem->quantity = $replace
+                    ? (int)$item['quantity']            // استبدال
+                    : $cartItem->quantity + (int)$item['quantity']; // جمع (سلوك add to cart)
                 $cartItem->total_price = $cartItem->quantity * $unitPrice;
                 $cartItem->save();
             } else {
                 CartItem::create([
-                    'cart_id' => $cart->id,
-                    'product_id' => $product->id,
-                    'owner_id' => $product->user_id,
-                    'quantity' => $item['quantity'],
-                    'variation' => json_encode($variationData),
-                    'unit_price' => $unitPrice,
-                    'total_price' => $totalPrice,
-                    'tax' => $tax,
-                    'discount' => $discount,
+                    'cart_id'     => $cart->id,
+                    'product_id'  => $product->id,
+                    'owner_id'    => $product->user_id,
+                    'quantity'    => (int)$item['quantity'],
+                    'variation'   => json_encode($variationData, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                    'unit_price'  => $unitPrice,
+                    'total_price' => $unitPrice * (int)$item['quantity'],
+                    'tax'         => $tax,
+                    'discount'    => $discount,
                 ]);
             }
         }
@@ -452,7 +455,6 @@ class CartsController extends Controller
 
         $user = auth()->user();
         $cart = Cart::with('items.product')->where('user_id', $user->id)->first();
-        return($cart);
         //dd($cart->items);
         if (!$cart || $cart->items->isEmpty()) {
             return response()->json([
