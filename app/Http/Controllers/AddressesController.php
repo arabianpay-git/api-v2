@@ -53,7 +53,11 @@ class AddressesController extends Controller
 
     public function store(Request $request)
     {
-    
+        return response()->json([
+                'status' => false,
+                'errNum' => 'E422',
+                'msg'    => 'Reguest || '.$request->all()
+            ]); 
         try {
             $address = Address::create([
                 'user_id'    => auth()->id(),
